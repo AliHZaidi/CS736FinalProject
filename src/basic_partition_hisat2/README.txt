@@ -1,0 +1,1 @@
+Basic frontend/filter/backend for sending partitioned .fa files to the backend to be aligned by HISAT2. 
