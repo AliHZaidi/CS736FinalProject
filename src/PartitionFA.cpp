@@ -14,15 +14,7 @@
 // For realpath
 #include <stdlib.h>
 
-/**
- * Return true if the given file exists on this filesystem.
- * Taken from : http://www.cplusplus.com/forum/general/1796/
- */
-bool fexists(const char *filename)
-{
-  std::ifstream ifile(filename);
-  return ifile;
-}
+#include "Utils.h"
 
 /**
  * Count number of lines in a file.
@@ -42,36 +34,6 @@ int num_reads_in_f(const char *filename)
         '>');
 
     return line_count;
-}
-
-/**
- * Get stem of a filename.
- * Code taken from https://www.oreilly.com/library/view/c-cookbook/0596007612/ch10s14.html
- */
-std::string filename_stem(const char *f_name)
-{
-    std::string path_str = f_name;
-    size_t delimiter_ind = path_str.rfind('.', path_str.length());
-    if (delimiter_ind != std::string::npos) {
-        return path_str.substr(0, delimiter_ind);
-    }
-
-    return NULL;
-}
-
-/**
- * Get stem of a filename.
- * Code taken from https://www.oreilly.com/library/view/c-cookbook/0596007612/ch10s14.html
- */
-std::string filename_extension(const char *f_name)
-{
-    std::string path_str = f_name;
-    size_t delimiter_ind = path_str.rfind('.', path_str.length());
-    if (delimiter_ind != std::string::npos) {
-        return path_str.substr(delimiter_ind+1, path_str.length() - delimiter_ind);
-    }
-
-    return NULL;
 }
 
 /**
