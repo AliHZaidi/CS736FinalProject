@@ -3,9 +3,11 @@
 
 #include "mrnet/Types.h"
 
-typedef enum { PROT_EXIT=FirstApplicationTag, 
-               PROT_APPEND,
-               PROT_MERGESORT } Protocol;
+typedef enum { PROT_EXIT=FirstApplicationTag,
+               PROT_ALIGN, // Packets to be aligned - have format string "%s %s"; first is input, second is output 
+               PROT_APPEND, // Return - please append these files "%s"
+               PROT_MERGESORT // Return - please mergesort these files. "%s"
+               } Protocol;
 
 // TODO: Make this a param @ FrontEnd
 const unsigned NUM_CHUNKS = 5;

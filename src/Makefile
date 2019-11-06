@@ -25,16 +25,16 @@ all_basic_net: $(TARGETS_BASIC_NET)
 FrontEnd: FrontEnd.o Utils.o
 	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
 
-FrontEnd.o: basic_partition_hisat2/FrontEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h
+FrontEnd.o: basic_partition_hisat2/FrontEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-BackEnd: BackEnd.o Utils.o
+BackEnd: BackEnd.o Utils.o 
 	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
 
-BackEnd.o: basic_partition_hisat2/BackEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h
+BackEnd.o: basic_partition_hisat2/BackEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-AppendFilter.so: basic_partition_hisat2/AppendFilter.cpp
+AppendFilter.so: basic_partition_hisat2/AppendFilter.cpp Executables.h
 	$(CXX) -o $@ $< $(MRNET_INCLUDES) $(SOFLAGS)
 
 # End Section

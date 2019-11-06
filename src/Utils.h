@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-
 // Get the 'stem' of a given filename before the extension.
 std::string filename_stem(const char *f_name);
 
