@@ -15,7 +15,7 @@ void write_empty_file(const char *f_name)
     std::string filename_out;    
     std::cout << "Filename given to backend node : " << f_name << std::endl;
 
-    filename_out = string(f_name) + ".out";
+    filename_out = std::string(f_name) + ".out";
     std::cout << "Filename for the output of the program: " << filename_out << std::endl;
 
     std::ofstream outfile (filename_out);
@@ -26,9 +26,12 @@ int main(int argc, char **argv)
     Stream *stream = NULL;
     PacketPtr p;
     int tag = 0;
+    std::cout << "Creating backend network object." << std::endl;
     Network * network = Network::CreateNetworkBE(argc, argv);
-    
+    std::cout << "Created backend network object." << std::endl;
+
     std::string filename_in;
+    char *filename_ptr;
     std::string filename_out;
 
     // Main Execution loop.
@@ -45,7 +48,9 @@ int main(int argc, char **argv)
         switch(tag)
         {
             case PROT_APPEND:
-                p->unpack("%s", &filename_in);
+                p->unpack("%s", &filename_ptr);
+		filename_in = std::string(filename_ptr);
+                std::cout << "Received the file " << filename_in << std::endl;
 
                 // Inject the operation to write the alignment file here.
                 // For now, let's write out a dummy file just to make sure we are making it here.
@@ -53,7 +58,7 @@ int main(int argc, char **argv)
                 // arguments
                 write_empty_file(filename_in.c_str());
 
-                if(stream->send(tag, "%s", filename_in) == -1)
+                if(stream->send(tag, "%s", filename_in.c_str()) == -1)
                 {
                     printf("Stream send failure.\n");
                     return -1;

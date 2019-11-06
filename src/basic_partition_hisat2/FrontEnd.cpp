@@ -13,8 +13,8 @@ using namespace MRN;
 // Filenames for BE Executable Path ; Filter SO Path.
 // We can change these out to be arguments, or to for other
 // users as needed.
-const char *be_exe = "~/736/CS736FinalProject/src/BackEnd";
-const char *append_filter = "~/736/CS736FinalProject/src/AppendFilter.so";
+const char *be_exe = "/u/c/r/crepea/736/CS736FinalProject/src/BackEnd";
+const char *append_filter_so = "/u/c/r/crepea/736/CS736FinalProject/src/AppendFilter.so";
 
 int main(int argc, char **argv)
 {
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     printf("Created Network.\n");
 
     // Make sure path to "so_file" is in LD_LIBRARY_PATH
-    int filter_id = network->load_FilterFunc( so_file, "AppendSortedFiles" );
+    int filter_id = network->load_FilterFunc(append_filter_so, "AppendFilter" );
     if(filter_id == -1)
     {
         printf( "Network::load_FilterFunc() failure\n");
@@ -101,7 +101,9 @@ int main(int argc, char **argv)
     {
         backend_rank = (*endpoint_iterator)->get_Rank();
 
-        send_packet = PacketPtr(new Packet(stream_id, tag, "%s", *filename_iterator));
+        std::cout << "Sending the filename: " << *filename_iterator << std::endl;
+
+        send_packet = PacketPtr(new Packet(stream_id, tag, "%s", (*filename_iterator).c_str()));
         send_packet->set_Destinations(&backend_rank, 1);
 
         if( stream->send(send_packet) == -1 )
@@ -113,7 +115,10 @@ int main(int argc, char **argv)
         {
             printf("Steam flush failure.\n");
             return -1;
-        }
+	}
+
+	++filename_iterator;
+	++endpoint_iterator;
     }
 
     // We expect "num_iters" aggregated responses from all back-ends.
