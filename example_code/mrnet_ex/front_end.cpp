@@ -86,6 +86,7 @@ int main(int argc, char **argv)
             printf("Iteration %d: Success! recv_val(%d) == %d\n", i, recv_val, send_val * i * num_backends);
         }
     }
+    stream->send(PROT_EXIT);
     printf("Back end is ... backing out!!!\n");
 
     // Network Destruction will exit all processes

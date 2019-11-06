@@ -31,7 +31,6 @@ int main(int argc, char **argv)
             case PROT_APPEND:
                 p->unpack("%s", &filename_in);
 
-
                 if(stream->send(tag, "%s", filename_in) == -1)
                 {
                     printf("Stream send failure.\n");
