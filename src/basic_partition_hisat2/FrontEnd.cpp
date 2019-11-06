@@ -10,21 +10,25 @@
 
 using namespace MRN;
 
+// Filenames for BE Executable Path ; Filter SO Path.
+// We can change these out to be arguments, or to for other
+// users as needed.
+const char *be_exe = "~/736/CS736FinalProject/src/BackEnd";
+const char *append_filter = "~/736/CS736FinalProject/src/AppendFilter.so";
+
 int main(int argc, char **argv)
 {
     int tag;
     PacketPtr p;
     
-    if (argc != 5)
+    if (argc != 3)
     {
         printf("Error !!!\n");
         exit(-1);
     }
 
     const char * topology_file = argv[1];
-    const char * be_exe = argv[2];
-    const char * so_file = argv[3];
-    const char * target_file = argv[4];
+    const char * target_file = argv[2];
     
     // Back end will need a filepath for the index of the reference.
     // Such that the BE can load this upon process creation.
