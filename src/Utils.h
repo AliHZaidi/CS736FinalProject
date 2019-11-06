@@ -4,6 +4,11 @@
 #include <string>
 #include <vector>
 
+// Given a filename .sam , eg /foo/bar/reads.sam,
+// Return a filename for a corresponding .bam file
+// Eg /foo/bar/reads.bam
+std::string filename_sam_to_bam(const char *filename)
+
 // Get the 'stem' of a given filename before the extension.
 std::string filename_stem(const char *f_name);
 
@@ -23,5 +28,6 @@ std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num
 
 // Given a vector of chunks, reduce their filename to one for a 'super chunk' of all the smaller chunks.
 std::string concat_chunk_filenames(std::vector<std::string> filenames);
+
 
 #endif /* hisat2_mrnet_utils_h */

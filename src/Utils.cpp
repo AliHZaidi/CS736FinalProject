@@ -139,3 +139,13 @@ std::string concat_chunk_filenames(std::vector<std::string> filenames)
 
     return ss.str();
 }
+
+std::string filename_sam_to_bam(const char *filename)
+{
+    std:stringstream ss;
+
+    ss << filename_stem(filename);
+    ss << ".bam";
+
+    return ss.str();
+}

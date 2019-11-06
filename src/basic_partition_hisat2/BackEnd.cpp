@@ -41,6 +41,49 @@ int align_file(char *input_file, char*output_file)
         return -1;
     }
 
+    if(pid == 0)
+    {
+        // In child
+        char exe_path[PATH_MAX + 1];
+
+        bcopy(SAMTOOOLS_PATH, exe_path, PATH_MAX + 1);
+        
+        // Args for execution.
+        // Fixed size vector at this point; we can screw around with this if we want to make it more flexible.
+        char *argv[9];
+        argv[0] = "view";
+        argv[1] = "-b";
+        argv[2] = "-o";
+        argv[3] = output_file;
+        argv[4] = input_file;
+        argv[5] = NULL;
+
+        execvp(argv[0], argv);
+    }
+    else
+    {
+        // In Parent.
+        // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+        int status;
+        wait(&status);
+    }
+
+    return 0;
+}
+
+/**
+ * Compress the given input .sam file into a .bam files by callign samtools merge
+ */
+int compress_file(char *input_file, char*output_file)
+{
+    int pid;
+    pid = fork();
+    if(pid == -1)
+    {
+        std::cerr << "Error in fork() call on backend." << std::endl;
+        return -1;
+    }
+
 
     if(pid == 0)
     {
@@ -91,6 +134,7 @@ int main(int argc, char **argv)
 
     std::string filename_in;
     std::string filename_out;
+    std::string filename_out_bam;
 
     // Main Execution loop.
     do
@@ -110,6 +154,7 @@ int main(int argc, char **argv)
                 p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
 		        filename_in  = std::string(filename_ptr_in);
                 filename_out = std::string(filename_ptr_out);
+                filename_out_bam = filename_sam_to_bam(filename_ptr_out);
 
                 std::cout << "Received the file " << filename_in << std::endl;
                 std::cout << "Received the file " << filename_out << " to output" << std::endl;
@@ -120,9 +165,13 @@ int main(int argc, char **argv)
                 // arguments
                 
                 // write_empty_file(filename_in.c_str());
+                // Align the file.
                 align_file(filename_ptr_in, filename_ptr_out);
 
-                if(stream->send(tag, "%s", filename_out.c_str()) == -1)
+                // Compress the output .sam file to a .bam file.
+                compress_file(filename_ptr_out, filename_out_bam.c_str());
+
+                if(stream->send(tag, "%s", filename_out_bam.c_str()) == -1)
                 {
                     printf("Stream send failure.\n");
                     return -1;
