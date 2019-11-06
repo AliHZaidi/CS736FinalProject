@@ -7,7 +7,7 @@
 // Given a filename .sam , eg /foo/bar/reads.sam,
 // Return a filename for a corresponding .bam file
 // Eg /foo/bar/reads.bam
-std::string filename_sam_to_bam(const char *filename)
+std::string filename_sam_to_bam(const char *filename);
 
 // Get the 'stem' of a given filename before the extension.
 std::string filename_stem(const char *f_name);

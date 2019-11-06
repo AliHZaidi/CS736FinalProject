@@ -13,6 +13,7 @@
 #include "BasicHISAT2MRNet.h"
 
 #include "../Executables.h"
+#include "../Utils.h"
 
 using namespace MRN;
 
@@ -31,7 +32,7 @@ void write_empty_file(const char *f_name)
 /*
  * Run HISAT2 on the given input file.
  */
-int align_file(char *input_file, char*output_file)
+int compress_file(char *input_file, char*output_file)
 {
     int pid;
     pid = fork();
@@ -50,14 +51,16 @@ int align_file(char *input_file, char*output_file)
         
         // Args for execution.
         // Fixed size vector at this point; we can screw around with this if we want to make it more flexible.
-        char *argv[9];
-        argv[0] = "view";
-        argv[1] = "-b";
-        argv[2] = "-o";
-        argv[3] = output_file;
-        argv[4] = input_file;
-        argv[5] = NULL;
-
+        char *argv[7];
+	argv[0] = exe_path;
+        argv[1] = "view";
+        argv[2] = "-b";
+        argv[3] = "-o";
+        argv[4] = output_file;
+        argv[5] = input_file;
+        argv[6] = NULL;
+	std::cout << "Input file: " << input_file << std::endl;
+	std::cout << "Output file: " << output_file << std::endl;
         execvp(argv[0], argv);
     }
     else
@@ -74,7 +77,7 @@ int align_file(char *input_file, char*output_file)
 /**
  * Compress the given input .sam file into a .bam files by callign samtools merge
  */
-int compress_file(char *input_file, char*output_file)
+int align_file(char *input_file, char* output_file)
 {
     int pid;
     pid = fork();
@@ -131,6 +134,7 @@ int main(int argc, char **argv)
 
     char *filename_ptr_in;
     char *filename_ptr_out;
+    char filename_ptr_bam[PATH_MAX + 1];
 
     std::string filename_in;
     std::string filename_out;
@@ -166,10 +170,14 @@ int main(int argc, char **argv)
                 
                 // write_empty_file(filename_in.c_str());
                 // Align the file.
-                align_file(filename_ptr_in, filename_ptr_out);
+		std::cout << "ALigning file." << std::endl;
+		align_file(filename_ptr_in, filename_ptr_out);
+		std::cout << "File aligned." << std::endl;
+
 
                 // Compress the output .sam file to a .bam file.
-                compress_file(filename_ptr_out, filename_out_bam.c_str());
+                bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
+		compress_file(filename_ptr_out, filename_ptr_bam);
 
                 if(stream->send(tag, "%s", filename_out_bam.c_str()) == -1)
                 {
