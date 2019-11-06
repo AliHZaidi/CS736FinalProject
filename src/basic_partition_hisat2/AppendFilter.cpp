@@ -1,10 +1,13 @@
-#include <vector>
+i#include <vector>
 #include <iostream>
 
 #include "mrnet/Packet.h"
 #include "mrnet/NetworkTopology.h"
 
 #include "BasicHISAT2MRNet.h"
+
+#include <unistd.h>
+#include <sys/wait.h>
 
 #include "../Executables.h"
 #include "../Utils.h"
@@ -13,6 +16,47 @@ using namespace MRN;
 
 extern "C"
 {
+    int merge_bam_files(std::vector<std::string> input_files, std::string out_file)
+    {
+        int pid;
+        pid = fork();
+        if(pid == -1)
+        {
+            std::cerr << "Error in fork() call on backend." << std::endl;
+            return -1;
+        }
+
+        if(pid == 0)
+        {
+            // In child
+            char argv[MAX_CHILDREN_PER_NODE + 5][PATH_MAX + 1];
+
+            bcopy(SAMTOOOLS_PATH, argv[0], PATH_MAX + 1);
+            argv[1] = "cat";
+            argv[2] = "-o";
+            bcopy(out_file.c_str(), argv[3], PATH_MAX + 1);
+            
+            int i = 4;
+            for(const auto &input_file : input_files)
+            {
+                bcopy(input_file.c_str(), argv[i], PATH_MAX + 1);
+                ++i;
+            }
+            std::cout << "Input file: " << input_file << std::endl;
+            std::cout << "Output file: " << output_file << std::endl;
+            execvp(argv[0], argv);
+        }
+        else
+        {
+            // In Parent.
+            // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+            int status;
+            wait(&status);
+        }
+
+        return 0;    
+    }
+
     // Must declare the format of data expected by the filter
     const char * AppendFilter_format_string = "%s";
     void AppendFilter(
