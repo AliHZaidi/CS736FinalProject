@@ -16,7 +16,7 @@ MRNET_INCLUDES=-I $(XPLAT_CONFIG_PATH) -L $(LIB_PATH) -l $(MRNET_LIB) -l $(XPLAT
 
 .PHONY: all all_basic_net clean
 
-all: $(TARGETS)
+all: $(TARGETS) all_basic_net
 
 all_basic_net: $(TARGETS_BASIC_NET)
 

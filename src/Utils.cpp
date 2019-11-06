@@ -70,7 +70,7 @@ std::string filename_chunk_str(const char *f_name)
     delimiter_ind = first_stem.rfind('.', first_stem.length());
     if (delimiter_ind != std::string::npos)
     {
-        return first_stem.substr(delimiter_ind, first_stem.length() - delimiter_ind);
+        return first_stem.substr(delimiter_ind + 1, first_stem.length() - delimiter_ind);
     }
 
     return "";
@@ -127,22 +127,26 @@ std::string concat_chunk_filenames(std::vector<std::string> filenames)
         return filenames[0];
     }
 
-    std::string f_stem = filename_stem(filenames[0].c_str());
+    std::string f_stem = filename_stem(filename_stem(filenames[0].c_str()).c_str());
     std::string f_ext = filename_extension(filenames[0].c_str());
 
     std::stringstream ss;
-    ss << filename_stem << "." << filename_chunk_str(filenames[0].c_str());
-    for(std::vector<std::string>::const_iterator i = filenames.begin() + 1; i != filenames.end(); ++i) {
-        ss << "_" << filename_chunk_str((*i).c_str());
+    ss << f_stem << "." << filename_chunk_str(filenames[0].c_str());
+    for(std::vector<std::string>::const_iterator i = filenames.begin(); i != filenames.end(); ++i) {
+        // Hackey way to skip first element
+	if(i == filenames.begin())
+	{
+	    continue;
+	}
+	ss << "_" << filename_chunk_str((*i).c_str());
     }
     ss << "." << f_ext;
 
     return ss.str();
 }
-
 std::string filename_sam_to_bam(const char *filename)
 {
-    std:stringstream ss;
+    std::stringstream ss;
 
     ss << filename_stem(filename);
     ss << ".bam";
