@@ -49,6 +49,34 @@ std::string filename_dir(const char *f_name)
 }
 
 /**
+ * For a given filename of format
+ * <stem>.<chunk_index>.extension>,
+ * Recover the chunk index
+ * eg for local/reads_1.0.fa, split into:
+ * steam       -> local/reads_1
+ * chunk_index -> 0
+ * extension   -> .fa
+ * Return the chunk index "0"
+ */
+std::string filename_chunk_str(const char *f_name)
+{
+    std::string path_str = f_name;
+    std::string first_stem;
+    size_t delimiter_ind = path_str.rfind('.', path_str.length());
+    if (delimiter_ind != std::string::npos)
+    {
+        first_stem = path_str.substr(0, delimiter_ind);
+    }
+    delimiter_ind = first_stem.rfind('.', first_stem.length());
+    if (delimiter_ind != std::string::npos)
+    {
+        return first_stem.substr(delimiter_ind, first_stem.length() - delimiter_ind);
+    }
+
+    return "";
+}
+
+/**
  * Return true if the given file exists on this filesystem.
  * Taken from : http://www.cplusplus.com/forum/general/1796/
  */
@@ -86,4 +114,28 @@ std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num
     }
 
     return chunk_paths;
+}
+
+std::string concat_chunk_filenames(std::vector<std::string> filenames)
+{
+    if(filenames.size() == 0)
+    {
+        return "";
+    }
+    if(filenames.size() == 1)
+    {
+        return filenames[0];
+    }
+
+    std::string f_stem = filename_stem(filenames[0].c_str());
+    std::string f_ext = filename_extension(filenames[0].c_str());
+
+    std::stringstream ss;
+    ss << filename_stem << "." << filename_chunk_str(filenames[0].c_str());
+    for(std::vector<std::string>::const_iterator i = filenames.begin() + 1; i != filenames.end(); ++i) {
+        ss << "_" << filename_chunk_str((*i).c_str());
+    }
+    ss << "." << f_ext;
+
+    return ss.str();
 }

@@ -7,6 +7,7 @@
 #include "BasicHISAT2MRNet.h"
 
 #include "../Executables.h"
+#include "../Utils.h"
 
 using namespace MRN;
 
@@ -27,13 +28,21 @@ extern "C"
         std::string s;
         std::string s_piece;
 	    char *unpack_ptr;
+
+        std::vector<std::string> filename_strings;
+
         for (const auto &packet : packets_in)
         {
             packet->unpack("%s", &unpack_ptr);
-            s_piece = std::string(unpack_ptr);
-            std::cout << "Read string at filter : " << s_piece << std::endl;
-            s += s_piece;
+
+            // s_piece = std::string(unpack_ptr);
+            // std::cout << "Read string at filter : " << s_piece << std::endl;
+            // s += s_piece;
+        
+            filename_strings.push_back(std::string(unpack_ptr));
         }
+
+        s = concat_chunk_filenames(filename_strings);
 
         std::cout << "Writing packet with string: " << s << " at filter." <<std::endl;
 

@@ -13,10 +13,15 @@ std::string filename_extension(const char *f_name);
 // Get the directory of a given file.
 std::string filename_dir(const char *f_name);
 
+std::string filename_chunk_str(const char *f_name);
+
 // Return true if a given file exists
 bool fexists(const char *filename);
 
 // Return paths to filename chunks given a filename
 std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num_chunks);
+
+// Given a vector of chunks, reduce their filename to one for a 'super chunk' of all the smaller chunks.
+std::string concat_chunk_filenames(std::vector<std::string> filenames);
 
 #endif /* hisat2_mrnet_utils_h */
