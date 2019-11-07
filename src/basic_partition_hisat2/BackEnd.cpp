@@ -80,6 +80,7 @@ int compress_file(char *input_file, char*output_file)
 int align_file(char *input_file, char* output_file)
 {
     int pid;
+    // Get time est here
     pid = fork();
     if(pid == -1)
     {
@@ -118,6 +119,8 @@ int align_file(char *input_file, char* output_file)
         // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
         int status;
         wait(&status);
+        // Get time2 est here
+        // do t2 - t1
     }
 
     return 0;
@@ -170,14 +173,14 @@ int main(int argc, char **argv)
                 
                 // write_empty_file(filename_in.c_str());
                 // Align the file.
-		std::cout << "ALigning file." << std::endl;
-		align_file(filename_ptr_in, filename_ptr_out);
-		std::cout << "File aligned." << std::endl;
+                std::cout << "ALigning file." << std::endl;
+                align_file(filename_ptr_in, filename_ptr_out);
+                std::cout << "File aligned." << std::endl;
 
 
                 // Compress the output .sam file to a .bam file.
                 bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
-		compress_file(filename_ptr_out, filename_ptr_bam);
+	        	compress_file(filename_ptr_out, filename_ptr_bam);
 
                 if(stream->send(tag, "%s", filename_out_bam.c_str()) == -1)
                 {

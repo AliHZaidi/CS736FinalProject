@@ -133,29 +133,6 @@ int main(int argc, char **argv)
         ++filename_out_iterator;
         ++endpoint_iterator;
     }
-
-
-    // We expect "num_iters" aggregated responses from all back-ends.
-    // for(unsigned int i = 0; i < num_iters; ++i)
-    // {
-    //     retval = stream->recv(&tag, p);
-    //     if( retval == -1)
-    //     {
-    //         // recv error
-    //         printf("Stream recv error.\n");
-    //         return -1;
-    //     }       
-    //     if (p->unpack("%d", &recv_val) == -1)
-    //     {
-    //         printf("Stream unpack failure.\n");
-    //         return -1;
-    //     }
-    //     else
-    //     {
-    //         printf("Iteration %d: Success! recv_val(%d) == %d\n", i, recv_val, send_val * i * num_backends);
-    //     }
-    // }
-
     char *char_ptr;
     tag = PROT_APPEND;
 
@@ -173,6 +150,9 @@ int main(int argc, char **argv)
     std::cout << "Payload: " << std::string(char_ptr) << std::endl;
     printf("Front end is ... backing out!!!\n");
 
+    // TODO: Code here for cleanup.
+
+    
     // Network Destruction will exit all processes
     delete network;
 

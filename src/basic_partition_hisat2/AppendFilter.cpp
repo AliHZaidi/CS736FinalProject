@@ -1,4 +1,4 @@
-i#include <vector>
+#include <vector>
 #include <iostream>
 
 #include "mrnet/Packet.h"
@@ -29,21 +29,33 @@ extern "C"
         if(pid == 0)
         {
             // In child
-            char argv[MAX_CHILDREN_PER_NODE + 5][PATH_MAX + 1];
-
+            // lol
+            std::cout << "Merging in child." << std::endl;
+	    char *argv[64];
+	    for(int i = 0; i < 63; ++i)
+	    {
+	        argv[i] = (char *) malloc(sizeof(char) * (PATH_MAX + 1));
+	    }
             bcopy(SAMTOOOLS_PATH, argv[0], PATH_MAX + 1);
-            argv[1] = "cat";
-            argv[2] = "-o";
+            bcopy("cat", argv[1], PATH_MAX + 1);
+            bcopy("-o", argv[2], PATH_MAX + 1);
             bcopy(out_file.c_str(), argv[3], PATH_MAX + 1);
             
             int i = 4;
             for(const auto &input_file : input_files)
             {
-                bcopy(input_file.c_str(), argv[i], PATH_MAX + 1);
-                ++i;
+               bcopy(input_file.c_str(), argv[i], PATH_MAX + 1);
+               ++i;
             }
-            std::cout << "Input file: " << input_file << std::endl;
-            std::cout << "Output file: " << output_file << std::endl;
+	    argv[i] = NULL;
+
+	    i = 0;
+	    while(argv[i] != NULL)
+	    {
+	    	std::cout << "Argument: " << argv[i++] << std::endl;
+	    }
+            // std::cout << "Input file: " << input_file << std::endl;
+            // std::cout << "Output file: " << output_file << std::endl;
             execvp(argv[0], argv);
         }
         else
@@ -87,8 +99,12 @@ extern "C"
         }
 
         s = concat_chunk_filenames(filename_strings);
-
-        std::cout << "Writing packet with string: " << s << " at filter." <<std::endl;
+	std::cout << "Merging bams." << std::endl;
+	if(packets_in.size() > 1)
+	{
+	    merge_bam_files(filename_strings, s);
+	}
+	std::cout << "Writing packet with string: " << s << " at filter." <<std::endl;
 
         // Write the string to a buffer to be placed in the packet.
         // Apparently, if we try to feed s in directly the C++ deconstructor will
