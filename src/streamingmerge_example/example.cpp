@@ -7,12 +7,22 @@
 
 // C++ program to merge k sorted arrays of size n each.
 // Predefined number of arrays that we can define, but we pass in the number of elements per array.
-// We merge sort each array, then use a Minheap to merge these sorted arrays.
+// We merge sort each array, then use a Minheap to merge these sorted arrays. 
+// Passing in arrays of tuples, sorting is taking place on the index value of each tuple
 #include<iostream> 
 #include<limits.h> 
+#include<list>
+#include<iterator>
 using namespace std; 
 
 #define n 1000
+
+//linked list node struct
+struct list_node{
+	struct test_tuple data;
+	struct list_node* next;
+};
+
 
 //Struct tuple that will populate our linked lists
 struct test_tuple{
@@ -60,16 +70,16 @@ public:
 // This function takes an array of arrays as an argument and 
 // All arrays are assumed to be sorted. It merges them together 
 // and prints the final sorted output. 
-int *mergeKArrays(int arr[][n], int k) 
+struct test_tuple *mergeKArrays(struct test_tuple arr[][n], int k) 
 { 
-	int *output = new int[n*k]; // To store output array 
+	struct test_tuple *output = new struct test_tuple[n*k]; // To store output array 
 
 	// Create a min heap with k heap nodes. Every heap node 
 	// has first element of an array 
 	MinHeapNode *harr = new MinHeapNode[k]; 
 	for (int i = 0; i < k; i++) 
 	{ 
-		harr[i].element = arr[i][0]; // Store the first element 
+		harr[i].element.index = arr[i][0].index; // Store the first element 
 		harr[i].i = i; // index of array 
 		harr[i].j = 1; // Index of next element to be stored from array 
 	} 
@@ -81,14 +91,14 @@ int *mergeKArrays(int arr[][n], int k)
 	{ 
 		// Get the minimum element and store it in output 
 		MinHeapNode root = hp.getMin(); 
-		output[count] = root.element.index; 
+		output[count].index = root.element.index; 
 
 		// Find the next elelement that will replace current 
 		// root of heap. The next element belongs to same 
 		// array as the current root. 
 		if (root.j < n) 
 		{ 
-			root.element.index = arr[root.i][root.j]; 
+			root.element.index = arr[root.i][root.j].index; 
 			root.j += 1; 
 		} 
 		// If root was the last element of its array 
@@ -123,9 +133,9 @@ void MinHeap::MinHeapify(int i)
 	int l = left(i); 
 	int r = right(i); 
 	int smallest = i; 
-	if (l < heap_size && harr[l].element < harr[i].element) 
+	if (l < heap_size && harr[l].element.index < harr[i].element.index) 
 		smallest = l; 
-	if (r < heap_size && harr[r].element < harr[smallest].element) 
+	if (r < heap_size && harr[r].element.index < harr[smallest].element.index) 
 		smallest = r; 
 	if (smallest != i) 
 	{ 
@@ -141,13 +151,13 @@ void swap(MinHeapNode *x, MinHeapNode *y)
 } 
 
 // A utility function to print array elements 
-void printArray(int arr[], int size) 
+void printArray(struct test_tuple arr[], int size) 
 { 
 for (int i=0; i < size; i++) 
-	cout << arr[i] << " "; 
+	cout << arr[i].index << " "; 
 } 
 
-int Merge(int A[],int p, int q,int r)     
+int Merge(struct test_tuple A[],int p, int q,int r)     
 {
 
     int n1,n2,i,j,k; 
@@ -159,12 +169,12 @@ int Merge(int A[],int p, int q,int r)
     //initializing the value of Left part to L[]
     for(i=0;i<n1;i++)
     {
-        L[i]=A[p+i];
+        L[i]=A[p+i].index;
     }
     //initializing the value of Right Part to R[]
     for(j=0;j<n2;j++)
     {
-        R[j]=A[q+j+1];
+        R[j]=A[q+j+1].index;
     }
     i=0,j=0;
     //Comparing and merging them
@@ -173,11 +183,11 @@ int Merge(int A[],int p, int q,int r)
     {
         if(L[i]<R[j])
         {
-            A[k]=L[i++];
+            A[k].index=L[i++];
         }
         else
         {
-            A[k]=R[j++];
+            A[k].index=R[j++];
         }
     }
     //If Left Array L[] has more elements than Right Array R[]
@@ -185,21 +195,21 @@ int Merge(int A[],int p, int q,int r)
     // reamining elements of L[] into A[]
     while(i<n1)             
     {
-        A[k++]=L[i++];
+        A[k++].index=L[i++];
     }
     //If Right Array R[] has more elements than Left Array L[]
     //then it will put all the
     // reamining elements of L[] into A[]
     while(j<n2)
     {
-        A[k++]=R[j++];
+        A[k++].index=R[j++];
     }
 }
 //This is Divide Part
 //This part will Divide the array into 
 //Sub array and then will Merge them
 //by calling Merge()
-int MergeSort(int A[],int p,int r)    
+int MergeSort(struct test_tuple A[],int p,int r)    
 {
     int q;                                
     if(p<r)
@@ -222,14 +232,15 @@ int main(int argc, char* argv[])
 	// number of n element arrays is provided as a command line arg.
     if(argc == 2){
         int k = atoi(argv[1]);
-        int arr[k][n];
+
+        struct test_tuple arr[k][n];
         for(int i = 0; i < k; i++){
             for(int j =0; j < n;j++){
-                arr[i][j] = rand() % (n*k);
+                arr[i][j].index = rand() % (n*k);
             }
             MergeSort(arr[i],0,n-1);
         }
-        int *output = mergeKArrays(arr, k); 
+        struct test_tuple *output = mergeKArrays(arr, k); 
 	    cout << "Merged array is " << endl; 
 	    printArray(output, n*k); 
         return 0;
@@ -237,15 +248,6 @@ int main(int argc, char* argv[])
     }
     else
         printf("No second arg detected. Going with predefined case.\n");
-    int arr[][n] = {{2, 6, 12, 34,47}, 
-					{1, 9, 20, 1000,1123}, 
-					{23, 34, 90, 2000,2134}}; 
-	int k = sizeof(arr)/sizeof(arr[0]); 
-
-	int *output = mergeKArrays(arr, k); 
-
-	cout << "Merged array is " << endl; 
-	printArray(output, n*k); 
 
 	return 0; 
 } 
