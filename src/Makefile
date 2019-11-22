@@ -1,5 +1,6 @@
 TARGETS=PartitionFA
 TARGETS_BASIC_NET=FrontEnd BackEnd AppendFilter.so
+TARGETS_STREAMING_NET=SFrontEnd SBackEnd SAppendFilter.so
 CXX_FLAGS = -std=c++17 \
             -Wall
 
@@ -16,9 +17,11 @@ MRNET_INCLUDES=-I $(XPLAT_CONFIG_PATH) -L $(LIB_PATH) -l $(MRNET_LIB) -l $(XPLAT
 
 .PHONY: all all_basic_net clean
 
-all: $(TARGETS) all_basic_net
+all: $(TARGETS) all_basic_net all_streaming_net
 
 all_basic_net: $(TARGETS_BASIC_NET)
+
+all_streaming_net: $(TARGETS_STREAMING_NET)
 
 # Below: Rules for Basic Network
 
@@ -35,6 +38,25 @@ BackEnd.o: basic_partition_hisat2/BackEnd.cpp basic_partition_hisat2/BasicHISAT2
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
 AppendFilter.so: basic_partition_hisat2/AppendFilter.cpp Executables.h
+	$(CXX) -o $@ $< $(MRNET_INCLUDES) $(SOFLAGS)
+
+# End Section
+
+# Below: Rules for "Streaming" HISAT2 Merging
+
+SFrontEnd: SFrontEnd.o Utils.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+
+SFrontEnd.o: streaming_hisat2/SFrontEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
+	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
+
+SBackEnd: SBackEnd.o Utils.o 
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+
+SBackEnd.o: streaming_hisat2/SBackEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
+	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
+
+SAppendFilter.so: streaming_hisat2/SAppendFilter.cpp Executables.h
 	$(CXX) -o $@ $< $(MRNET_INCLUDES) $(SOFLAGS)
 
 # End Section
