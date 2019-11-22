@@ -17,11 +17,6 @@ using namespace std;
 
 #define n 1000
 
-//linked list node struct
-struct list_node{
-	struct test_tuple data;
-	struct list_node* next;
-};
 
 
 //Struct tuple that will populate our linked lists
@@ -30,6 +25,12 @@ struct test_tuple{
 	int index;
 };
 
+
+//linked list node struct
+struct list_node{
+	struct test_tuple data;
+	//struct list_node* next;
+};
 
 // A min heap node 
 struct MinHeapNode 
@@ -219,6 +220,47 @@ int MergeSort(struct test_tuple A[],int p,int r)
         MergeSort(A,q+1,r);
         Merge(A,p,q,r);
     }
+}
+
+
+//Assuming we are passed two sorted lists of nodes, which contain tuples
+//We malloc a large array that is the size of the two lists combined
+//and then linearly pass through each list, populating this array in
+//ascending order.
+int mergeLists(list<struct list_node> a, list<struct list_node> b){
+	int outputListSize = a.size() + b.size();
+	struct list_node* outputList = (struct list_node*) malloc(outputListSize * sizeof(struct list_node));
+	list<struct list_node>::iterator it1 = a.begin();
+	list<struct list_node>::iterator it2 = b.begin();
+	int i = 0;
+	//we compare until we reach the end of one of the lists.
+	while(it1 != a.end() && it2 !=  b.end()){
+		if(it1 ->data.index <= it2 -> data.index){
+			outputList[i].data = it1->data;
+			it1++;
+			i++;
+		}
+		else{
+			outputList[i].data = it2 -> data;
+			it2++;
+			i++;
+		}
+	}
+	//We fill out the rest of the list with whatever list where we have not reached the end
+	while(it1 != a.end()){
+		outputList[i].data = it1->data;
+		it1++;
+		i++;
+	}
+
+	while(it2 != b.end()){
+		outputList[i].data = it2->data;
+		it2++;
+		i++;
+	}
+
+	return 0;
+
 }
 
 
