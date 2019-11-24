@@ -8,11 +8,7 @@ typedef enum { PROT_EXIT=FirstApplicationTag,
                PROT_APPEND, // Return - please append these files "%s"
                PROT_MERGESORT // Return - please mergesort these files. "%s"
                } Protocol;
-
-// TODO: Make this a param @ FrontEnd
-const unsigned NUM_CHUNKS = 5;
-const unsigned MAX_CHILDREN_PER_NODE = 64;
-
+               
 const unsigned BUFFER_FLUSH_SIZE = 0;
 
 #endif /* hisat2_mrnet_h */
