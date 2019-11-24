@@ -144,6 +144,7 @@ std::string concat_chunk_filenames(std::vector<std::string> filenames)
 
     return ss.str();
 }
+
 std::string filename_sam_to_bam(const char *filename)
 {
     std::stringstream ss;
@@ -153,3 +154,58 @@ std::string filename_sam_to_bam(const char *filename)
 
     return ss.str();
 }
+
+// Operations on BAM Files
+
+   int cat_bam_files(std::vector<std::string> input_files, std::string out_file)
+    {
+        int pid;
+        pid = fork();
+        if(pid == -1)
+        {
+            std::cerr << "Error in fork() call on backend." << std::endl;
+            return -1;
+        }
+
+        if(pid == 0)
+        {
+            // In child
+            // lol
+            std::cout << "Merging in child." << std::endl;
+            char *argv[MAX_CHILDREN_PER_NODE];
+            for(uint i = 0; i < MAX_CHILDREN_PER_NODE - 1; ++i)
+            {
+                argv[i] = (char *) malloc(sizeof(char) * (PATH_MAX + 1));
+            }
+            bcopy(SAMTOOOLS_PATH, argv[0], PATH_MAX + 1);
+            bcopy("cat", argv[1], PATH_MAX + 1);
+            bcopy("-o", argv[2], PATH_MAX + 1);
+            bcopy(out_file.c_str(), argv[3], PATH_MAX + 1);
+            
+            int i = 4;
+            for(const auto &input_file : input_files)
+            {
+               bcopy(input_file.c_str(), argv[i], PATH_MAX + 1);
+               ++i;
+            }
+            argv[i] = NULL;
+
+            i = 0;
+            while(argv[i] != NULL)
+            {
+                std::cout << "Argument: " << argv[i++] << std::endl;
+            }
+            // std::cout << "Input file: " << input_file << std::endl;
+            // std::cout << "Output file: " << output_file << std::endl;
+            execvp(argv[0], argv);
+        }
+        else
+        {
+            // In Parent.
+            // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+            int status;
+            wait(&status);
+        }
+
+        return 0;    
+    }

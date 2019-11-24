@@ -2,7 +2,9 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include <iostream> // For Debug
+#include <sstream>
 
 #include <unistd.h> // For testing sleep
 
@@ -20,7 +22,7 @@ int main(int argc, char **argv)
     int tag, retval;
     PacketPtr p;
     
-    if (argc != 4)
+    if (argc != 5)
     {
         printf("Error !!!\n");
         exit(-1);
@@ -29,6 +31,10 @@ int main(int argc, char **argv)
     const char *topology_file = argv[1];
     const char *input_file = argv[2];
     const char *output_file = argv[3];
+    const char *num_chunks_str = argv[4];
+
+    std::stringstream ss(num_chunks_str);
+    int num_chunks << ss;
 
     // Back end will need a filepath for the index of the reference.
     // Such that the BE can load this upon process creation.

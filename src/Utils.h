@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+const unsigned MAX_CHILDREN_PER_NODE = 64;
+
 // Given a filename .sam , eg /foo/bar/reads.sam,
 // Return a filename for a corresponding .bam file
 // Eg /foo/bar/reads.bam
