@@ -29,6 +29,8 @@ void write_empty_file(const char *f_name)
     std::ofstream outfile (filename_out);
 }
 
+
+
 /*
  * Run HISAT2 on the given input file.
  */
