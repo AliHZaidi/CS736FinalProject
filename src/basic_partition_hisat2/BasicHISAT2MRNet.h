@@ -11,5 +11,4 @@ typedef enum { PROT_EXIT=FirstApplicationTag,
 
 // TODO: Make this a param @ FrontEnd
 const unsigned NUM_CHUNKS = 5;
-const unsigned MAX_CHILDREN_PER_NODE = 64;
 #endif /* hisat2_mrnet_h */

@@ -1,6 +1,6 @@
 TARGETS=PartitionFA
 TARGETS_BASIC_NET=FrontEnd BackEnd AppendFilter.so
-TARGETS_STREAMING_NET=SFrontEnd SBackEnd SAppendFilter.so
+TARGETS_STREAMING_NET=SFrontEnd SBackEnd SMergeFilter.so
 CXX_FLAGS = -std=c++17 \
             -Wall
 
@@ -25,14 +25,14 @@ all_streaming_net: $(TARGETS_STREAMING_NET)
 
 # Below: Rules for Basic Network
 
-FrontEnd: FrontEnd.o Utils.o
-	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+FrontEnd: FrontEnd.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
 
 FrontEnd.o: basic_partition_hisat2/FrontEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-BackEnd: BackEnd.o Utils.o 
-	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+BackEnd: BackEnd.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
 
 BackEnd.o: basic_partition_hisat2/BackEnd.cpp basic_partition_hisat2/BasicHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
@@ -44,37 +44,41 @@ AppendFilter.so: basic_partition_hisat2/AppendFilter.cpp Executables.h
 
 # Below: Rules for "Streaming" HISAT2 Merging
 
-SFrontEnd: SFrontEnd.o Utils.o
-	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+SFrontEnd: SFrontEnd.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
 
 SFrontEnd.o: streaming_hisat2/SFrontEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-SBackEnd: SBackEnd.o Utils.o 
-	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o $(MRNET_INCLUDES) $(LDFLAGS)
+SBackEnd: SBackEnd.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
 
 SBackEnd.o: streaming_hisat2/SBackEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-SAppendFilter.so: streaming_hisat2/SAppendFilter.cpp Executables.h
-	$(CXX) -o $@ $< $(MRNET_INCLUDES) $(SOFLAGS)
+SMergeFilter.so: streaming_hisat2/SMergeFilter.cpp Executables.h Executables.o
+	$(CXX) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(SOFLAGS)
 
 # End Section
 
 
 # Below : Basic Utils Binaries & Programs
 
-PartitionFA: PartitionFA.o Utils.o
-	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o
+PartitionFA: PartitionFA.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o
 
 PartitionFA.o: PartitionFA.cpp Utils.h
 	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
-Utils.o: Utils.cpp Utils.h
+Utils.o: Utils.cpp Utils.h Executables.h Executables.o
+	$(CXX) $(CXX_FLAGS) -c $< -o $@ -fPIC
+
+Executables.o: Executables.cpp Executables.h
 	$(CXX) $(CXX_FLAGS) -c $< -o $@
+
 
 # End Section
 
 clean:
-	$(RM) $(TARGETS) $(TARGETS_BASIC_NET)
+	$(RM) $(TARGETS) $(TARGETS_BASIC_NET) $(TARGETS_STREAMING_NET)
 	$(RM) *.o

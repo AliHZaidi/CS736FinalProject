@@ -31,5 +31,6 @@ std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num
 // Given a vector of chunks, reduce their filename to one for a 'super chunk' of all the smaller chunks.
 std::string concat_chunk_filenames(std::vector<std::string> filenames);
 
+int cat_bam_files(std::vector<std::string> input_files, std::string out_file);
 
 #endif /* hisat2_mrnet_utils_h */

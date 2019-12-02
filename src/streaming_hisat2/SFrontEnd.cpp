@@ -62,7 +62,8 @@ int main(int argc, char **argv)
     const char *num_chunks_str = argv[4];
 
     std::stringstream ss(num_chunks_str);
-    int num_chunks << ss;
+    int num_chunks = 0;
+    ss >> num_chunks;
 
     // Back end will need a filepath for the index of the reference.
     // Such that the BE can load this upon process creation.
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
     NetworkTopology *nettop = network->get_NetworkTopology();
 
     // Make sure path to "so_file" is in LD_LIBRARY_PATH
-    int filter_id_top = network->load_FilterFunc( SO_FILE, "MergeTop" );
+    int filter_id_top = network->load_FilterFunc( STREAMING_MERGE_FILTER_SO, "MergeFilterTop" );
     if(filter_id_top == -1)
     {
         printf( "Network::load_FilterFunc() failure\n");
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int filter_id_normal = network->load_FilterFunc( so_file, "Merge" );
+    int filter_id_normal = network->load_FilterFunc( STREAMING_MERGE_FILTER_SO, "MergeFilter" );
     if(filter_id_normal == -1)
     {
         printf( "Network::load_FilterFunc() failure\n");
@@ -139,8 +140,8 @@ int main(int argc, char **argv)
      * END SECTION
      */
 
-    std::vector<std::string> chunk_paths        = get_chunk_filenames(std::string(input_file), NUM_CHUNKS);
-    std::vector<std::string> output_chunk_paths = get_chunk_filenames(std::string(output_file), NUM_CHUNKS);
+    std::vector<std::string> chunk_paths        = get_chunk_filenames(std::string(input_file), num_chunks);
+    std::vector<std::string> output_chunk_paths = get_chunk_filenames(std::string(output_file), num_chunks);
     
     // Some sanity checking.
     for(auto i = chunk_paths.begin(); i != chunk_paths.end(); ++i)
@@ -175,6 +176,7 @@ int main(int argc, char **argv)
     
     PacketPtr send_packet;
     Rank backend_rank;
+    Rank srcRank;
 
     tag = PROT_ALIGN;
 
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 
         // Distribute K Chunks for each backend to start.
 
-        for(int i = 0; i < INIT_CHUNKS_PER_BACKEND; ++i){
+        for(uint i = 0; i < INIT_CHUNKS_PER_BACKEND; ++i){
             if(filename_in_iterator == chunk_paths.end())
             {
                 break;
@@ -192,7 +194,7 @@ int main(int argc, char **argv)
 
             std::cout << "Sending the filename: " << *filename_in_iterator << std::endl;
 
-            send_packet = PacketPtr(new Packet(stream_id, tag, "%s %s",
+            send_packet = PacketPtr(new Packet(data_stream->get_Id(), tag, "%s %s",
                 (*filename_in_iterator).c_str(),
                 (*filename_out_iterator).c_str()));
             
@@ -237,7 +239,7 @@ int main(int argc, char **argv)
             // 1. If there are more chunks to send down, then send down another one.
             // 2. Else, send down a PROT_EXIT message.
             case PROT_CHUNK_REQUEST:
-                if(chunk_counter < TOTAL_NUM_CHUNKS)
+                if(chunk_counter < num_chunks)
                 {
                     std::cout << "FE Sending down a packet." << std::endl;
                     send_packet = PacketPtr(new Packet(data_stream->get_Id(), PROT_ALIGN, "%s %s",
@@ -268,7 +270,6 @@ int main(int argc, char **argv)
                 // printf("Get final array of length: %d\n", final_arr_len);
                 break;
             case PROT_SUBTREE_EXIT:
-                continue_loop = false;
                 printf("Got exit message. Breaking.\n");
                 break;
         }

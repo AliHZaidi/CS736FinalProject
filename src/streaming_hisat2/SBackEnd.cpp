@@ -1,5 +1,3 @@
-#include <string>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -49,7 +47,7 @@ int compress_file(char *input_file, char*output_file)
         // In child
         char exe_path[PATH_MAX + 1];
 
-        bcopy(SAMTOOOLS_PATH, exe_path, PATH_MAX + 1);
+        bcopy(SAMTOOLS_PATH, exe_path, PATH_MAX + 1);
         
         // Args for execution.
         // Fixed size vector at this point; we can screw around with this if we want to make it more flexible.
@@ -264,11 +262,11 @@ int main(int argc, char **argv)
             }
 
             // Generate a data array & send it out the data stream.
-            data_array = generate_array(INTS_PER_CHUNK);
-
-            filename_in = chunks_to_make_inputs.pop_back();
-            filename_out = chunks_to_make_outputs.pop_back();
-            filename_out_bam = filename_sam_to_bam(filename_out);
+            filename_in = chunks_to_make_inputs.back();
+            chunks_to_make_inputs.pop_back();
+            filename_out = chunks_to_make_outputs.back();
+            chunks_to_make_outputs.pop_back();
+            filename_out_bam = filename_sam_to_bam(filename_out.c_str());
 
             // Alignment OP.
             align_file(filename_ptr_in, filename_ptr_out);
