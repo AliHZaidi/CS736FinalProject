@@ -17,6 +17,34 @@
 
 using namespace MRN;
 
+// Function lifted from the HeterogenousFilters source code
+// given with MRNet
+bool assign_filters( NetworkTopology* nettop, 
+                     int be_filter, int cp_filter, int fe_filter, 
+                     std::string& up )
+{
+    std::ostringstream assignment;
+
+    // assign FE
+    NetworkTopology::Node* root = nettop->get_Root();
+    assignment << fe_filter << " => " << root->get_Rank() << " ; ";
+
+    // assign BEs
+    std::set< NetworkTopology::Node * > bes;
+    nettop->get_BackEndNodes(bes);
+    std::set< NetworkTopology::Node* >::iterator niter = bes.begin();
+    for( ; niter != bes.end(); niter++ ) {
+        assignment << be_filter << " => " << (*niter)->get_Rank() << " ; ";
+    }
+
+    // assign CPs (if any) using '*', which means everyone not already assigned
+    assignment << cp_filter << " => * ; ";
+
+    up = assignment.str();
+    
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     int tag, retval;
@@ -50,9 +78,11 @@ int main(int argc, char **argv)
     Network * network = Network::CreateNetworkFE(topology_file, STREAMING_BACKEND_EXEC, &be_argv);
     printf("Created Network.\n");
 
+    NetworkTopology *nettop = network->get_NetworkTopology();
+
     // Make sure path to "so_file" is in LD_LIBRARY_PATH
-    int filter_id = network->load_FilterFunc(STREAMING_APPEND_FILTER_EXEC, "AppendFilter" );
-    if(filter_id == -1)
+    int filter_id_top = network->load_FilterFunc( SO_FILE, "MergeTop" );
+    if(filter_id_top == -1)
     {
         printf( "Network::load_FilterFunc() failure\n");
         // Network destruction will exit all processes.
@@ -60,22 +90,56 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // Get a vector of communicators to communicate with all backends
+    int filter_id_normal = network->load_FilterFunc( so_file, "Merge" );
+    if(filter_id_normal == -1)
+    {
+        printf( "Network::load_FilterFunc() failure\n");
+        // Network destruction will exit all processes.
+        delete network;
+        return -1;
+    }
+
+    // Assign string filters to up/sync/down for filter assignment later on.
+
+    std::string down = ""; //TFILTER_NULL
+
+    // use default (SFILTER_DONTWAIT) filter for upstream synchronization
+    char assign[16];
+    sprintf(assign, "%d => *;", SFILTER_DONTWAIT);
+    std::string sync = assign;
+    
+    std::string up; // Assign filters as per normal to BE/Mid, Top gets special fitler.
+    assign_filters(nettop, filter_id_normal, filter_id_normal, filter_id_top, up);
+
+
+
+    // A Broadcast communicator contains all the back-ends
     Communicator * comm_BC = network->get_BroadcastCommunicator();
 
-    // Create a Stream that uses AppendSortedFiles filter for aggregation
-    Stream *stream = network->new_Stream(comm_BC, filter_id, SFILTER_DONTWAIT);
+    // Create a Stream that uses Integer_Add filter for aggregation
+    Stream *data_stream    = network->new_Stream(comm_BC, up, sync, down);
+    Stream *control_stream = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT, TFILTER_NULL);
+    Stream *stream;
 
-
-    // TODO: Modify this code snippet.
-    // Basically, set to send a packet to ONE backend with a given chunk.
     std::set<CommunicationNode *> end_points = comm_BC->get_EndPoints();
+
+    // Init the Control Stream.
+    if(control_stream->send(PROT_INIT_CONTROL_STREAM, "") == -1)
+    {
+        printf("Steam send failure.\n");
+        return -1;        
+    }
+    if(control_stream-> flush() == -1 )
+    {
+        printf("Steam flush failure.\n");
+        return -1;
+    }
 
     /**
      * END SECTION
      */
 
-    std::vector<std::string> chunk_paths = get_chunk_filenames(std::string(input_file), NUM_CHUNKS);
+    std::vector<std::string> chunk_paths        = get_chunk_filenames(std::string(input_file), NUM_CHUNKS);
     std::vector<std::string> output_chunk_paths = get_chunk_filenames(std::string(output_file), NUM_CHUNKS);
     
     // Some sanity checking.
@@ -101,13 +165,10 @@ int main(int argc, char **argv)
      * BELOW: Sending filenames to backends.
      */
 
-    tag = PROT_ALIGN;
-
-    unsigned stream_id = stream->get_Id();
-
     // Iterate over endpoints and chunk filenames.
-    // Distribute one chunk to each backend
-    // TODO: Make sure these have the same length. 
+    // Distribute chunks to each backend
+
+    int chunk_counter = 0;
     std::vector<std::string>::iterator filename_in_iterator = chunk_paths.begin();
     std::vector<std::string>::iterator filename_out_iterator = output_chunk_paths.begin();
     std::set<CommunicationNode *>::iterator endpoint_iterator = end_points.begin();
@@ -115,50 +176,108 @@ int main(int argc, char **argv)
     PacketPtr send_packet;
     Rank backend_rank;
 
+    tag = PROT_ALIGN;
+
     while(endpoint_iterator != end_points.end())
     {
         backend_rank = (*endpoint_iterator)->get_Rank();
 
-        std::cout << "Sending the filename: " << *filename_in_iterator << std::endl;
+        // Distribute K Chunks for each backend to start.
 
-        send_packet = PacketPtr(new Packet(stream_id, tag, "%s %s",
-            (*filename_in_iterator).c_str(),
-            (*filename_out_iterator).c_str()));
-        send_packet->set_Destinations(&backend_rank, 1);
+        for(int i = 0; i < INIT_CHUNKS_PER_BACKEND; ++i){
+            if(filename_in_iterator == chunk_paths.end())
+            {
+                break;
+            }
 
-        if( stream->send(send_packet) == -1 )
-        {
-            printf("Steam send failure.\n");
-            return -1;
+            std::cout << "Sending the filename: " << *filename_in_iterator << std::endl;
+
+            send_packet = PacketPtr(new Packet(stream_id, tag, "%s %s",
+                (*filename_in_iterator).c_str(),
+                (*filename_out_iterator).c_str()));
+            
+            send_packet->set_Destinations(&backend_rank, 1);
+
+            if( data_stream->send(send_packet) == -1 )
+            {
+                printf("Steam send failure.\n");
+                return -1;
+            }
+            if( data_stream-> flush() == -1 )
+            {
+                printf("Steam flush failure.\n");
+                return -1;
+            }
+
+            ++filename_in_iterator;
+            ++filename_out_iterator;
+
+            chunk_counter++;
         }
-        if( stream-> flush() == -1 )
-        {
-            printf("Steam flush failure.\n");
-            return -1;
-	    }
-
-        ++filename_in_iterator;
-        ++filename_out_iterator;
         ++endpoint_iterator;
     }
-    char *char_ptr;
-    tag = PROT_APPEND;
 
-    retval = stream->recv(&tag, p);
-    if(retval == -1)
+    // BELOW: Receive loop for frontend.
+    // Continously grab packets and send down responses.
+    char *filename_ptr;
+    while(true)
     {
-        std::cout << "Uh oh detected on FE" << std::endl;
-    }
-    std::cout << "Received a packet at FE" << std::endl;
-    if(p->unpack("%s", &char_ptr) == -1)
-    {
-        std::cout << "Error in unpacking packet." << std::endl;
-    }
+        retval = network->recv(&tag, p, &stream, true);
+        if( retval == -1)
+        {
+            // recv error
+            printf("Stream recv error.\n");
+            return -1;
+        }
+        srcRank = p->get_SourceRank();     
 
-    std::cout << "Payload: " << std::string(char_ptr) << std::endl;
-    printf("Front end is ... backing out!!!\n");
+        switch(tag){
+            // Case - a BE has completed a chunk and now requests a new one.
+            // We have 2 cases here - 
+            // 1. If there are more chunks to send down, then send down another one.
+            // 2. Else, send down a PROT_EXIT message.
+            case PROT_CHUNK_REQUEST:
+                if(chunk_counter < TOTAL_NUM_CHUNKS)
+                {
+                    std::cout << "FE Sending down a packet." << std::endl;
+                    send_packet = PacketPtr(new Packet(data_stream->get_Id(), PROT_ALIGN, "%s %s",
+                    (*filename_in_iterator).c_str(),
+                    (*filename_out_iterator).c_str()));
+                    send_packet->set_Destinations(&srcRank, 1);
+                
+                    data_stream->send(send_packet);
+                    data_stream->flush();
 
-    // TODO: Code here for cleanup.
+                    chunk_counter++;
+                    filename_in_iterator++;
+                    filename_out_iterator++;
+
+                    std::cout << "Current number of chunks to go: " << chunk_counter << std::endl;
+                }
+                else
+                {
+                    send_packet = PacketPtr(new Packet(control_stream->get_Id(), PROT_EXIT, ""));
+                    send_packet->set_Destinations(&srcRank, 1);
+                    
+                    control_stream->send(send_packet);
+                    control_stream->flush();
+                }
+                break;
+            case PROT_MERGE:
+                p->unpack("%s", &filename_ptr);
+                // printf("Get final array of length: %d\n", final_arr_len);
+                break;
+            case PROT_SUBTREE_EXIT:
+                continue_loop = false;
+                printf("Got exit message. Breaking.\n");
+                break;
+        }
+
+        if(tag == PROT_SUBTREE_EXIT)
+        {
+            break;
+        }
+    }
 
     
     // Network Destruction will exit all processes

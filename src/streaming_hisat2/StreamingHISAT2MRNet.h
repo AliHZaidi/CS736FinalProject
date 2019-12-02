@@ -3,12 +3,15 @@
 
 #include "mrnet/Types.h"
 
-typedef enum { PROT_EXIT=FirstApplicationTag,
-               PROT_ALIGN, // Packets to be aligned - have format string "%s %s"; first is input, second is output 
-               PROT_APPEND, // Return - please append these files "%s"
-               PROT_MERGESORT // Return - please mergesort these files. "%s"
-               } Protocol;
+typedef enum { 
+    PROT_EXIT = FirstApplicationTag, // Message sent from FE to BE to indicate an exit. Sent after a request for another chunk, when there are no more chunks to give.
+    PROT_SUBTREE_EXIT,               // Message sent up the data stream to indicate that the given subtree has finished and is exiting.
+    PROT_ALIGN,
+    PROT_CHUNK_REQUEST,              // Request from BE to FE to get one more chunk. 
+    PROT_MERGE,                      // Packet sent up the hierarchy - to be merged at intermediate nodes.
+    PROT_INIT_CONTROL_STREAM         // First message sent from FE to BE in control stream. Used for BE to learn control stream for sending messages.
+} Protocol;
                
-const unsigned BUFFER_FLUSH_SIZE = 0;
+const unsigned INIT_CHUNKS_PER_BACKEND = 4;
 
 #endif /* hisat2_mrnet_h */

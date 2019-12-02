@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <vector>
+
 // For fork-exec-wait
 #include <unistd.h>
 #include <sys/wait.h>
@@ -128,9 +130,17 @@ int align_file(char *input_file, char* output_file)
 
 int main(int argc, char **argv)
 {
-    Stream *stream = NULL;
+    Stream *stream         = NULL; // Used to read in the stream value from each recv call.
+    Stream *control_stream = NULL; // For sending control packets directly to/from parent & backends
+    Stream *data_stream    = NULL; // For sending data up and down through filters.
+
     PacketPtr p;
     int tag = 0;
+
+    bool block_recv;           // Whether or not we block on a receive op.
+    bool end_signaled = false; // Set to true when the Front End signals the end of communication.
+    bool fin_pkt_sent = false; // Sent after the fin packet for this node has been sent. 
+
     std::cout << "Creating backend network object." << std::endl;
     Network * network = Network::CreateNetworkBE(argc, argv);
     std::cout << "Created backend network object." << std::endl;
@@ -143,65 +153,161 @@ int main(int argc, char **argv)
     std::string filename_out;
     std::string filename_out_bam;
 
+    int ret;
+    std::vector<std::string> chunks_to_make_inputs;
+    std::vector<std::string> chunks_to_make_outputs;
+
     // Main Execution loop.
     do
     {
-        // Check for network recv failure.
-        if(network->recv(&tag, p, &stream) != 1)
+        // See if we block on next receive
+        // (If we have more input to process, do we not do block.)
+        block_recv = (chunks_to_make_inputs.size() == 0 || control_stream == NULL);
+        // If we block for receive - do a standard receive operation.
+        // Then, flush out the rest of the buffer.
+
+        // If we don't block for receive - skip right to flushing out the buffer.
+        std::cout << "BE Recv calling." << std::endl;
+        if(block_recv)
         {
-            fprintf(stderr, "stream::recv() failure\n");
-            return -1;
-        }
-        std::cout << "Backend node received a packet." << std::endl;
+            std::cout << "Blocking on receive" << std::endl;
+            if(network->recv(&tag, p, &stream, true) != 1)
+            {
+                fprintf(stderr, "stream::recv() failure\n");
+                return -1;
+            }
 
-        // Switch on Network Tech.
-        switch(tag)
-        {
-            case PROT_ALIGN:
-                p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
-		        filename_in  = std::string(filename_ptr_in);
-                filename_out = std::string(filename_ptr_out);
-                filename_out_bam = filename_sam_to_bam(filename_ptr_out);
+            switch(tag)
+            {
+                case PROT_ALIGN:
+                    std::cout << "Backend received align message" << std::endl;
+                    data_stream = stream;
+                    p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
 
-                std::cout << "Received the file " << filename_in << std::endl;
-                std::cout << "Received the file " << filename_out << " to output" << std::endl;
+                    // Will this change as char *s change?
+                    chunks_to_make_inputs.push_back(std::string(filename_ptr_in));
+                    chunks_to_make_outputs.push_back(std::string(filename_ptr_out));
 
-                // Inject the operation to write the alignment file here.
-                // For now, let's write out a dummy file just to make sure we are making it here.
-                // In the future, we will want to to fork/exec/wait hisat2 witht the appropriate
-                // arguments
-                
-                // write_empty_file(filename_in.c_str());
-                // Align the file.
-                std::cout << "ALigning file." << std::endl;
-                align_file(filename_ptr_in, filename_ptr_out);
-                std::cout << "File aligned." << std::endl;
-
-
-                // Compress the output .sam file to a .bam file.
-                bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
-	        	compress_file(filename_ptr_out, filename_ptr_bam);
-
-                
-                if(stream->send(tag, "%s", filename_out_bam.c_str()) == -1)
-                {
-                    printf("Stream send failure.\n");
+                    break;
+                case PROT_EXIT:
+                    std::cout << "Backend received new message - end exeuction." << std::endl;
+                    control_stream = stream;
+                    end_signaled = true;
+                    break;
+                case PROT_INIT_CONTROL_STREAM:
+                    control_stream = stream;
+                    break;
+                default:
+                    std::cerr << "Error - tag not recognized (Backend)." << std::endl;
                     return -1;
-                }
-                if(stream->flush() == -1)
+            }
+        }
+
+        // Loop - Receive and process all remaining packets in the buffer.
+        while(true)
+        {
+            ret = network->recv(&tag, p, &stream, false);
+            
+            // Case - packet read
+            if(ret == 1)
+            {
+                // Unpack and process packet.
+                switch(tag)
                 {
-                    printf("stream::flush() failure\n");
+                    case PROT_ALIGN:
+                        std::cout << "Backend received align message" << std::endl;
+                        data_stream = stream;
+                        p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
+
+                        // Will this change as char *s change?
+                        chunks_to_make_inputs.push_back(std::string(filename_ptr_in));
+                        chunks_to_make_outputs.push_back(std::string(filename_ptr_out));
+
+                        break;
+                    case PROT_EXIT:
+                        std::cout << "Backend received new message - end exeuction." << std::endl;
+                        control_stream = stream;
+                        end_signaled = true;
+                        break;
+                    case PROT_INIT_CONTROL_STREAM:
+                        control_stream = stream;
+                        break;
+                    default:
+                        std::cerr << "Error - tag not recognized (Backend)." << std::endl;
+                        return -1;
                 }
+
+                continue;
+            }
+            // Case - no more packets to read.
+            else if(ret == 0)
+            {
                 break;
-            case PROT_EXIT:
-                printf("Processing a PROT_EXIT ... \n");
-                break;
-            default:
-                printf("Unknown protocol %d\n", tag);
-                break;
+            }
+            // Case - Error
+            else
+            {
+                fprintf(stderr, "stream::recv() failure\n");
+                return -1;                    
+            }
+        }
+        std::cout << "Finished Receiving" << std::endl;
+
+        // Generate and send a packet.
+        if(chunks_to_make_inputs.size() > 0 && control_stream != NULL)
+        {
+            // Generate & Send a packet.
+            if(data_stream == NULL || control_stream == NULL)
+            {
+                fprintf(stderr, "Stream is null on chunck send\n");
+                return -1;
+            }
+
+            // Generate a data array & send it out the data stream.
+            data_array = generate_array(INTS_PER_CHUNK);
+
+            filename_in = chunks_to_make_inputs.pop_back();
+            filename_out = chunks_to_make_outputs.pop_back();
+            filename_out_bam = filename_sam_to_bam(filename_out);
+
+            // Alignment OP.
+            align_file(filename_ptr_in, filename_ptr_out);
+
+            bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
+            compress_file(filename_ptr_out, filename_ptr_bam);
+
+            // Possibly commands for SAMTOOLS INDEX, SAMTOOLS SORT?
+
+            if(data_stream->send(PROT_MERGE, "%s",filename_out_bam.c_str()) == -1)
+            {
+                fprintf(stderr, "Error in stream send.\n");
+            }
+            if(data_stream->flush() == -1)
+            {
+                std::cerr << "Error in flushing stream." << std::endl;
+            }
+
+            // Request FE for another chunk.
+            if(control_stream->send(PROT_CHUNK_REQUEST, "") == -1)
+            {
+                std::cerr << "Error in sending to control stream." << std::endl;
+            }
+            if(control_stream->flush() == -1)
+            {
+                std::cerr << "Error in flushing control stream." << std::endl;
+            }        
+        }
+
+        // Send a 'fin' packet if conditions are met.
+        if(end_signaled && (chunks_to_make_inputs.size() == 0))
+        {
+            std::cout << "BE signaling the end." << std::endl;
+            data_stream->send(PROT_SUBTREE_EXIT, "");
+            data_stream->flush();
+            fin_pkt_sent = true;
         }
         /* code */
-    } while (tag != PROT_EXIT);
+    } while (!fin_pkt_sent);
     
     network->waitfor_ShutDown();
     delete network;
