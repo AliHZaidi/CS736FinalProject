@@ -100,6 +100,15 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    int filter_id_bottom = network->load_FilterFunc( STREAMING_MERGE_FILTER_SO, "SortFilter" );
+    if(filter_id_normal == -1)
+    {
+        printf( "Network::load_FilterFunc() failure\n");
+        // Network destruction will exit all processes.
+        delete network;
+        return -1;
+    }
+
     // Assign string filters to up/sync/down for filter assignment later on.
 
     std::string down = ""; //TFILTER_NULL
@@ -110,8 +119,7 @@ int main(int argc, char **argv)
     std::string sync = assign;
     
     std::string up; // Assign filters as per normal to BE/Mid, Top gets special fitler.
-    assign_filters(nettop, filter_id_normal, filter_id_normal, filter_id_top, up);
-
+    assign_filters(nettop, filter_id_bottom, filter_id_normal, filter_id_top, up);
 
 
     // A Broadcast communicator contains all the back-ends

@@ -29,7 +29,7 @@ std::string filename_stem(const char *f_name)
 }
 
 /**
- * Get stem of a filename.
+ * Get extension of a filename.
  * Code taken from https://www.oreilly.com/library/view/c-cookbook/0596007612/ch10s14.html
  */
 std::string filename_extension(const char *f_name)
@@ -158,6 +158,17 @@ std::string filename_sam_to_bam(const char *filename)
 
     ss << filename_stem(filename);
     ss << ".bam";
+
+    return ss.str();
+}
+
+std::string filename_sorted_bam(const char *filename)
+{
+    std::stringstream ss;
+
+    ss << filename_stem(filename);
+    ss << ".sorted";
+    ss << "." << filename_extension(filename);
 
     return ss.str();
 }

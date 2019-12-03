@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 
+#include <stdio.h>
+
 #include "mrnet/Packet.h"
 #include "mrnet/NetworkTopology.h"
 
@@ -78,6 +80,55 @@ extern "C"
         }
 
         return 0;    
+    }
+
+    int sort_bam_file(const char *in_file, const char *out_file)
+    {
+        int pid;
+        pid = fork();
+        if(pid == -1)
+        {
+            std::cerr << "Error in fork() call on backend." << std::endl;
+            return -1;
+        }
+
+        if(pid == 0)
+        {
+            char *argv[6];
+
+            for(uint i = 0; i < 6; ++i)
+            {
+                argv[i] = (char *) malloc(sizeof(char) * (PATH_MAX + 1));
+            }
+
+            bcopy(SAMTOOLS_PATH, argv[0], PATH_MAX + 1);
+            bcopy("sort", argv[1], PATH_MAX + 1);
+            bcopy("-o", argv[2], PATH_MAX + 1);
+            bcopy(out_file, argv[3], PATH_MAX + 1);
+            bcopy(in_file, argv[4], PATH_MAX + 1);
+            argv[5] = NULL;
+
+            int i = 0;
+            while(argv[i] != NULL)
+            {
+                std::cout << "Argument: " << argv[i++] << std::endl;
+            }
+            // std::cout << "Input file: " << input_file << std::endl;
+            // std::cout << "Output file: " << output_file << std::endl;
+            execvp(argv[0], argv);
+        }
+        else
+        {
+            // In Parent.
+            // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+            int status;
+            wait(&status);
+            
+            remove(in_file);
+            rename(out_file, in_file);
+        }
+
+        return 0;           
     }
 
     std::vector<std::string> filenames_vector(M_filter_state *state)
@@ -216,6 +267,98 @@ extern "C"
             }
 
             // b. Send an exit packet.
+            PacketPtr exit_p (new Packet(packets_in[0]->get_StreamId(), PROT_SUBTREE_EXIT, ""));
+            packets_out.push_back(exit_p);
+        }
+    }
+
+    const char *SortFilter_format_string = "";
+    /**
+     * Bottom level filter for sotring packets.
+     */
+    void SortFilter(
+        std::vector<PacketPtr> &packets_in,
+        std::vector<PacketPtr> &packets_out,
+        std::vector<PacketPtr> /* packets_out_reverse */,
+        void ** filter_state,
+        PacketPtr& /* params */,
+        const TopologyLocalInfo* topologyInfo
+    )
+    {
+        struct M_filter_state *state = (struct M_filter_state*) *filter_state;
+        if(*filter_state == NULL)
+        {
+            std::cout << "Making a new filter state" << std::endl;
+            state = (struct M_filter_state *) malloc(sizeof(M_filter_state));            
+            
+            state->num_children = topologyInfo->get_NumChildren();
+            if(state->num_children == 0)
+            {
+                state->num_children = 1;
+            }
+
+            state->curr_buffer_size = 0;
+
+            *filter_state = (void *) state;
+            std::cout << "Made a new filter state." << std::endl;
+        }
+
+        PacketPtr cur_packet;
+        uint stream_id;
+        int tag;
+        char *unpack_ptr;
+        for(unsigned int i = 0; i < packets_in.size(); i++)
+        {
+            cur_packet = packets_in[i];
+            stream_id = cur_packet->get_StreamId();
+
+            tag = cur_packet->get_Tag();
+            switch(tag)
+            {
+                // Case - integers to merge. Add them to the stored state buffer.
+                case PROT_MERGE:
+                    cur_packet->unpack("%s", &unpack_ptr);
+                    std::cout << "Unpacked filename " << unpack_ptr << std::endl;
+                    state->buffer[state->curr_buffer_size] = unpack_ptr;
+                    state->curr_buffer_size++;
+                    std::cout << "File added to buffer." << std::endl;
+                    break;
+                // Case - a child has reported that it has exited.
+                case PROT_SUBTREE_EXIT:
+                    state->num_children_exited++;
+                    std::cout << "Exit packet observed at filter." << std::endl;
+                    break;
+                default:
+                    std::cerr << "Packet tag unrecognized at filter" << std::endl;
+                    return;
+            }
+        }
+
+        const char *in_filename;
+        std::string out_str;
+        const char *out_filename;
+        for(int i = 0; i < state->curr_buffer_size; ++i)
+        {
+            // Sort File
+            in_filename = state->buffer[i];
+            out_str = filename_sorted_bam(in_filename);
+            out_filename = out_str.c_str();
+            std::cout << "From unsorted input file" << in_filename << std::endl;
+            std::cout << "Generating sorted file: " << out_str << std::endl;
+            std::cout << "Also, " << out_filename << std::endl;
+            
+            sort_bam_file(in_filename, out_filename);
+            
+            std::cout << "Sorted file generated" << std::endl;
+        
+            // Send file
+            PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", in_filename));
+            packets_out.push_back(p);
+        }
+        state->curr_buffer_size = 0;
+
+        // Send exit packet if necessary
+        if(state->num_children == state->num_children_exited){
             PacketPtr exit_p (new Packet(packets_in[0]->get_StreamId(), PROT_SUBTREE_EXIT, ""));
             packets_out.push_back(exit_p);
         }
