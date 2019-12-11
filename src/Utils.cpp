@@ -152,12 +152,38 @@ std::string concat_chunk_filenames(std::vector<std::string> filenames)
     return ss.str();
 }
 
+std::string get_final_filename(std::vector<std::string> filenames)
+{
+    if(filenames.size() == 0)
+    {
+        return "";
+    }
+
+    std::string f_stem = filename_stem(filename_stem(filenames[0].c_str()).c_str());
+    std::string f_ext = filename_extension(filenames[0].c_str());
+
+    std::stringstream ss;
+    ss << f_stem << "." << f_ext;
+
+    return ss.str();
+}
+
 std::string filename_sam_to_bam(const char *filename)
 {
     std::stringstream ss;
 
     ss << filename_stem(filename);
     ss << ".bam";
+
+    return ss.str();
+}
+
+std::string filename_bam_to_sam(const char *filename)
+{
+    std::stringstream ss;
+
+    ss << filename_stem(filename);
+    ss << ".sam";
 
     return ss.str();
 }

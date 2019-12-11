@@ -8,12 +8,16 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include <stdio.h>
+#include <unistd.h>
+
 #include "mrnet/MRNet.h"
 
 #include "StreamingHISAT2MRNet.h"
 
 #include "../Executables.h"
 #include "../Utils.h"
+
 
 using namespace MRN;
 
@@ -69,6 +73,7 @@ int compress_file(char *input_file, char*output_file)
         // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
         int status;
         wait(&status);
+        remove(input_file);
     }
 
     return 0;

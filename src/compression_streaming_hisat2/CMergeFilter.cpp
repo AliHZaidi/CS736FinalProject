@@ -3,13 +3,13 @@
 #include <string>
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "mrnet/Packet.h"
 #include "mrnet/NetworkTopology.h"
 
 #include "StreamingHISAT2MRNet.h"
 
-#include <unistd.h>
 #include <sys/wait.h>
 
 #include "../Executables.h"
@@ -77,6 +77,10 @@ extern "C"
             // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
             int status;
             wait(&status);
+            for(const auto &input_file : input_files)
+            {
+               remove(input_file.c_str());
+            }
         }
 
         return 0;    
@@ -126,6 +130,51 @@ extern "C"
             
             remove(in_file);
             rename(out_file, in_file);
+        }
+
+        // Decompress file back.
+        pid = fork();
+        if(pid == -1)
+        {
+            std::cerr << "Error in fork() call on backend." << std::endl;
+            return -1;
+        }
+
+        if(pid == 0)
+        {
+            char *argv[6];
+            const char *sam_filename = filename_sam_to_bam(in_file);
+
+
+            for(uint i = 0; i < 6; ++i)
+            {
+                argv[i] = (char *) malloc(sizeof(char) * (PATH_MAX + 1));
+            }
+
+            bcopy(SAMTOOLS_PATH, argv[0], PATH_MAX + 1);
+            bcopy("view", argv[1], PATH_MAX + 1);
+            bcopy("-o", argv[2], PATH_MAX + 1);
+            bcopy(sam_filename, argv[3], PATH_MAX + 1);
+            bcopy(in_file, argv[4], PATH_MAX + 1);
+            argv[5] = NULL;
+
+            int i = 0;
+            while(argv[i] != NULL)
+            {
+                std::cout << "Argument: " << argv[i++] << std::endl;
+            }
+            // std::cout << "Input file: " << input_file << std::endl;
+            // std::cout << "Output file: " << output_file << std::endl;
+            execvp(argv[0], argv);
+        }
+        else
+        {
+            // In Parent.
+            // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+            int status;
+            wait(&status);
+            
+            remove(in_file);
         }
 
         return 0;           
@@ -352,7 +401,8 @@ extern "C"
             std::cout << "Sorted file generated" << std::endl;
         
             // Send file
-            PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", in_filename));
+            const char *sam_file = filename_bam_to_sam(in_filename).c_str();
+            PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", sam_file));
             packets_out.push_back(p);
         }
         state->curr_buffer_size = 0;
@@ -465,7 +515,7 @@ extern "C"
                 std::vector<std::string> fname_vec = filenames_vector(state);
 
                 std::cerr << "getting chunk filesnames for vec of size: " << fname_vec.size() << std::endl;
-                s = concat_chunk_filenames(fname_vec);
+                s = get_final_filename(fname_vec);
                 std::cout << "Merging bam files for: " << s << std::endl;
                 merge_bam_files(fname_vec, s);
 

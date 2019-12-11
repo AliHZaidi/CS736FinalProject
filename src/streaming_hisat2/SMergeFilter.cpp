@@ -3,13 +3,13 @@
 #include <string>
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "mrnet/Packet.h"
 #include "mrnet/NetworkTopology.h"
 
 #include "StreamingHISAT2MRNet.h"
 
-#include <unistd.h>
 #include <sys/wait.h>
 
 #include "../Executables.h"
@@ -77,6 +77,10 @@ extern "C"
             // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
             int status;
             wait(&status);
+            for(const auto &input_file : input_files)
+            {
+               remove(input_file.c_str());
+            }
         }
 
         return 0;    
@@ -465,7 +469,7 @@ extern "C"
                 std::vector<std::string> fname_vec = filenames_vector(state);
 
                 std::cerr << "getting chunk filesnames for vec of size: " << fname_vec.size() << std::endl;
-                s = concat_chunk_filenames(fname_vec);
+                s = get_final_filename(fname_vec);
                 std::cout << "Merging bam files for: " << s << std::endl;
                 merge_bam_files(fname_vec, s);
 

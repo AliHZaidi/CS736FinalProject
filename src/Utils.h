@@ -11,6 +11,8 @@ const unsigned MAX_CHILDREN_PER_NODE = 64;
 // Eg /foo/bar/reads.bam
 std::string filename_sam_to_bam(const char *filename);
 
+std::string filename_bam_to_sam(const char *filename);
+
 // Get the 'stem' of a given filename before the extension.
 std::string filename_stem(const char *f_name);
 
@@ -30,6 +32,8 @@ std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num
 
 // Given a vector of chunks, reduce their filename to one for a 'super chunk' of all the smaller chunks.
 std::string concat_chunk_filenames(std::vector<std::string> filenames);
+
+std::string get_final_filename(std::vector<std::string> filenames);
 
 std::string filename_sorted_bam(const char *filename);
 
