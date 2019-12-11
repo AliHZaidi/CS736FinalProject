@@ -1,0 +1,39 @@
+royal-01:0 =>
+    royal-02:1
+    royal-03:2;
+
+royal-02:1 =>
+    royal-04:3
+    royal-05:4;
+
+royal-03:2 =>
+    royal-06:5
+    royal-07:6;
+
+royal-04:3 =>
+    royal-08:7
+    royal-09:8
+    royal-18:15
+    royal-19:16
+    royal-27:23;
+
+royal-05:4 =>
+    royal-10:9
+    royal-11:10
+    royal-20:17
+    royal-26:18
+    royal-28:24;
+
+royal-06:5 =>
+    royal-13:11
+    royal-14:12
+    royal-22:19
+    royal-23:20
+    royal-29:25;
+
+royal-07:6 =>
+    royal-16:13
+    royal-17:14
+    royal-24:21
+    royal-25:22
+    royal-30:26;

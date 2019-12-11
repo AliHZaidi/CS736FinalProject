@@ -67,7 +67,7 @@ SMergeFilter.so: streaming_hisat2/SMergeFilter.cpp Executables.h Executables.o
 PartitionFA: PartitionFA.o Utils.o Executables.o
 	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o
 
-PartitionFA.o: PartitionFA.cpp Utils.h
+PartitionFA.o: PartitionFA.cpp Utils.h Executables.h
 	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 Utils.o: Utils.cpp Utils.h Executables.h Executables.o

@@ -96,7 +96,7 @@ int align_file(char *input_file, char* output_file)
         char index_path[PATH_MAX + 1];
 
         bcopy(HISAT2_SMALL_PATH, exe_path, PATH_MAX + 1);
-        bcopy(EXAMPLE_INDEX_PATH, index_path, PATH_MAX + 1);
+        bcopy(HG38_INDEX_PATH, index_path, PATH_MAX + 1);
         
         // Args for execution.
         // Fixed size vector at this point; we can screw around with this if we want to make it more flexible.
