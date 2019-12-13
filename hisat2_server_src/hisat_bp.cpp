@@ -3882,4 +3882,11 @@ int hisat(int argc, const char **argv) {
 		return e;
 	}
 } // bowtie()
+
+
+int main(int argc, char **argv)
+{
+	
+}
+
 } // extern "C"

@@ -462,7 +462,7 @@ static void resetOptions() {
 	defaultPreset      = "sensitive%LOCAL%"; // default preset; applied immediately
 	extra_opts.clear();
 	extra_opts_cur = 0;
-	bt2index.clear();        // read Bowtie 2 index from files with this prefix
+	// bt2index.clear();        // read Bowtie 2 index from files with this prefix
 	ignoreQuals = false;     // all mms incur same penalty, regardless of qual
 	wrapper.clear();         // type of wrapper script, so we can print correct usage
 	queries.clear();         // list of query files
@@ -1394,7 +1394,7 @@ static void parseOption(int next_option, const char *arg) {
 		case ARG_1MM_UPFRONT_NO:   do1mmUpFront   = false; break;
 		case ARG_1MM_MINLEN:       do1mmMinLen = parse<size_t>(arg); break;
 		case ARG_NOISY_HPOLY: noisyHpolymer = true; break;
-		case 'x': bt2index = arg; break;
+		// case 'x': bt2index = arg; break;
 		case ARG_PRESET_VERY_FAST_LOCAL: localAlign = true;
 		case ARG_PRESET_VERY_FAST: {
 			presetList.push_back("very-fast%LOCAL%"); break;
@@ -3583,7 +3583,9 @@ template<typename TStr>
 static void driver(
 	const char * type,
 	const string& bt2indexBase,
-	const string& outfile)
+	const string& outfile,
+	HGFM<index_t, local_index_t> *gfm
+	)
 {
 	if(gVerbose || startVerbose)  {
 		cerr << "Entered driver(): "; logTime(cerr, true);
@@ -3643,37 +3645,37 @@ static void driver(
 		fout = new OutFileBuf();
 	}
 	// Initialize GFM object and read in header
-	if(gVerbose || startVerbose) {
-		cerr << "About to initialize fw GFM: "; logTime(cerr, true);
-	}
-    altdb = new ALTDB<index_t>();
-	adjIdxBase = adjustEbwtBase(argv0, bt2indexBase, gVerbose);
-	HGFM<index_t, local_index_t> gfm(
-                                     adjIdxBase,
-                                     altdb,
-                                     -1,       // fw index
-                                     true,     // index is for the forward direction
-                                     /* overriding: */ offRate,
-                                     0, // amount to add to index offrate or <= 0 to do nothing
-                                     useMm,    // whether to use memory-mapped files
-                                     useShmem, // whether to use shared memory
-                                     mmSweep,  // sweep memory-mapped files
-                                     !noRefNames, // load names?
-                                     true,        // load SA sample?
-                                     true,        // load ftab?
-                                     true,        // load rstarts?
-                                     !no_spliced_alignment, // load splice sites?
-                                     gVerbose, // whether to be talkative
-                                     startVerbose, // talkative during initialization
-                                     false /*passMemExc*/,
-                                     sanityCheck,
-                                     use_haplotype); //use haplotypes?
+	// if(gVerbose || startVerbose) {
+	// 	cerr << "About to initialize fw GFM: "; logTime(cerr, true);
+	// }
+    // altdb = new ALTDB<index_t>();
+	// adjIdxBase = adjustEbwtBase(argv0, bt2indexBase, gVerbose);
+	// HGFM<index_t, local_index_t> gfm(
+    //                                  adjIdxBase,
+    //                                  altdb,
+    //                                  -1,       // fw index
+    //                                  true,     // index is for the forward direction
+    //                                  /* overriding: */ offRate,
+    //                                  0, // amount to add to index offrate or <= 0 to do nothing
+    //                                  useMm,    // whether to use memory-mapped files
+    //                                  useShmem, // whether to use shared memory
+    //                                  mmSweep,  // sweep memory-mapped files
+    //                                  !noRefNames, // load names?
+    //                                  true,        // load SA sample?
+    //                                  true,        // load ftab?
+    //                                  true,        // load rstarts?
+    //                                  !no_spliced_alignment, // load splice sites?
+    //                                  gVerbose, // whether to be talkative
+    //                                  startVerbose, // talkative during initialization
+    //                                  false /*passMemExc*/,
+    //                                  sanityCheck,
+    //                                  use_haplotype); //use haplotypes?
 	if(sanityCheck && !os.empty()) {
 		// Sanity check number of patterns and pattern lengths in GFM
 		// against original strings
-		assert_eq(os.size(), gfm.nPat());
+		assert_eq(os.size(), gfm->nPat());
 		for(size_t i = 0; i < os.size(); i++) {
-			assert_eq(os[i].length(), gfm.plen()[i]);
+			assert_eq(os[i].length(), gfm->plen()[i]);
 		}
 	}
 	// Sanity-check the restored version of the GFM
@@ -3690,18 +3692,12 @@ static void driver(
 	}
     {
         // Load the other half of the index into memory
-        assert(!gfm.isInMemory());
+        assert(gfm->isInMemory());
         Timer _t(cerr, "Time loading forward index: ", timing);
-        gfm.loadIntoMemory(
-                           -1, // not the reverse index
-                           true,         // load SA samp? (yes, need forward index's SA samp)
-                           true,         // load ftab (in forward index)
-                           true,         // load rstarts (in forward index)
-                           !noRefNames,  // load names?
-                           startVerbose);
+
     }
     if(!saw_k) {
-        if(gfm.gh().linearFM()) khits = 5;
+        if(gfm->gh().linearFM()) khits = 5;
         else                    khits = 10;
     }
 	OutputQueue oq(
@@ -3744,8 +3740,8 @@ static void driver(
                    &penNoncanIntronLen);  // penalty as to intron length
         
 		EList<size_t> reflens;
-		for(size_t i = 0; i < gfm.nPat(); i++) {
-			reflens.push_back(gfm.plen()[i]);
+		for(size_t i = 0; i < gfm->nPat(); i++) {
+			reflens.push_back(gfm->plen()[i]);
 		}
 		EList<string> refnames;
 		readEbwtRefnames<index_t>(adjIdxBase, refnames);
@@ -3867,7 +3863,7 @@ static void driver(
                                 nthreads > 1, // thread-safe
                                 write, // write?
                                 read);  // read?
-        ssdb->read(gfm, altdb->alts());
+        ssdb->read(*gfm, altdb->alts());
         if(knownSpliceSiteInfile != "") {
             ifstream ssdb_file(knownSpliceSiteInfile.c_str(), ios::in);
             if(ssdb_file.is_open()) {
@@ -3926,9 +3922,9 @@ static void driver(
                         refs.get(),
                         metricsOfb);
 		// Evict any loaded indexes from memory
-		if(gfm.isInMemory()) {
-			gfm.evictFromMemory();
-		}
+		// if(gfm.isInMemory()) {
+		// 	gfm.evictFromMemory();
+		// }
 		if(!gQuiet && !seedSumm) {
 			size_t repThresh = mhits;
 			if(repThresh == 0) {
@@ -3976,47 +3972,34 @@ static void driver(
 	}
 }
 
-// C++ name mangling is disabled for the bowtie() function to make it
-// easier to use Bowtie as a library.
-extern "C" {
 
 /**
  * Main bowtie entry function.  Parses argc/argv style command-line
  * options, sets global configuration variables, and calls the driver()
  * function.
+ * 
+ * Notes for extension:
+ * Accepts arguments similar to hisat2 entry function:
+ *  Hisat2 Executable <input> <flags>
+ * Notably here, we set the index variables outside the scope of this function
+ * Thus, 
  */
-int hisat2(int argc, const char **argv) {
+int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 	try {
 		// Reset all global state, including getopt state
 		opterr = optind = 1;
 		resetOptions();
+		argstr = "";
+
 		for(int i = 0; i < argc; i++) {
 			argstr += argv[i];
 			if(i < argc-1) argstr += " ";
 		}
+
 		if(startVerbose) { cerr << "Entered main(): "; logTime(cerr, true); }
 		parseOptions(argc, argv);
 		argv0 = argv[0];
-		if(showVersion) {
-			cout << argv0 << " version " << HISAT2_VERSION << endl;
-			if(sizeof(void*) == 4) {
-				cout << "32-bit" << endl;
-			} else if(sizeof(void*) == 8) {
-				cout << "64-bit" << endl;
-			} else {
-				cout << "Neither 32- nor 64-bit: sizeof(void*) = " << sizeof(void*) << endl;
-			}
-			cout << "Built on " << BUILD_HOST << endl;
-			cout << BUILD_TIME << endl;
-			cout << "Compiler: " << COMPILER_VERSION << endl;
-			cout << "Options: " << COMPILER_OPTIONS << endl;
-			cout << "Sizeof {int, long, long long, void*, size_t, off_t}: {"
-				 << sizeof(int)
-				 << ", " << sizeof(long) << ", " << sizeof(long long)
-				 << ", " << sizeof(void *) << ", " << sizeof(size_t)
-				 << ", " << sizeof(off_t) << "}" << endl;
-			return 0;
-		}
+		
 		{
 			Timer _t(cerr, "Overall time: ", timing);
 			if(startVerbose) {
@@ -4114,7 +4097,7 @@ int hisat2(int argc, const char **argv) {
 				cout << "Press key to continue..." << endl;
 				getchar();
 			}
-			driver<SString<char> >("DNA", bt2index, outfile);
+			driver<SString<char> >("DNA", bt2index, outfile. gfm);
 		}
 		return 0;
 	} catch(std::exception& e) {
@@ -4132,5 +4115,52 @@ int hisat2(int argc, const char **argv) {
 		}
 		return e;
 	}
-} // bowtie()
-} // extern "C"
+} // HISAT2 Function.
+
+int main(int argc, char **argv)
+{
+	// Load the Human Genome Index into memory.
+	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
+	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
+
+	bt2index = std::string(HG38_INDEX_PATH);
+	altdb = new ALTDB<index_t>();
+
+	// Init the index - to be stored in memory.
+	HGFM<index_t, local_index_t> gfm(
+                                     bt2index,
+                                     altdb,
+                                     -1,       // fw index
+                                     true,     // index is for the forward direction
+                                     /* overriding: */ offRate,
+                                     0, // amount to add to index offrate or <= 0 to do nothing
+                                     useMm,    // whether to use memory-mapped files
+                                     useShmem, // whether to use shared memory
+                                     mmSweep,  // sweep memory-mapped files
+                                     !noRefNames, // load names?
+                                     true,        // load SA sample?
+                                     true,        // load ftab?
+                                     true,        // load rstarts?
+                                     !no_spliced_alignment, // load splice sites?
+                                     gVerbose, // whether to be talkative
+                                     startVerbose, // talkative during initialization
+                                     false /*passMemExc*/,
+                                     sanityCheck,
+                                     use_haplotype); //use haplotypes?
+
+	gfm.loadIntoMemory(
+					-1, // not the reverse index
+					true,         // load SA samp? (yes, need forward index's SA samp)
+					true,         // load ftab (in forward index)
+					true,         // load rstarts (in forward index)
+					!noRefNames,  // load names?
+					startVerbose);
+
+
+	char argv1[16][64];
+	char argv2[16][64];
+
+	argv1[0] = "hisat2-align-s";
+	
+
+}
