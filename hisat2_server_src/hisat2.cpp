@@ -4123,7 +4123,7 @@ int main(int argc, char **argv)
 	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
 	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
 
-	bt2index = std::string(HG38_INDEX_PATH);
+	bt2index = std::string(EXAMPLE_INDEX_PATH);
 	altdb = new ALTDB<index_t>();
 
 	// Init the index - to be stored in memory.
@@ -4160,6 +4160,28 @@ int main(int argc, char **argv)
 	char argv1[16][64];
 	char argv2[16][64];
 
+	bcopy("./hisat2-align-s", argv1[0], 17);
+	bcopy("-S", argv1[1], 3);
+	bcopy("/p/genome_mrnet/hist2_example/reads/reads_1.fa", argv1[2], 49);
+	bcopy("-U", argv1[3], 3);
+	bcopy("/p/genome_mrnet/hisat2_example/reads/aligned_1.sam" argv1[4], 51);
+	bcopy("-f", argv1[5], 3);
+	argv1[6] = NULL;
+
+	bcopy("./hisat2-align-s", argv2[0], 17);
+	bcopy("-S", argv2[1], 3);
+	bcopy("/p/genome_mrnet/hist2_example/reads/reads_2.fa", argv2[2], 49);
+	bcopy("-U", argv2[3], 3);
+	bcopy("/p/genome_mrnet/hisat2_example/reads/aligned_2.sam", argv2[4], 51);
+	bcopy("-f", argv2[5], 3);
+	argv1[6] = NULL;
+
+	hisat2(7, argv1, gfm);
+
+	hisat2(7, argv2, gfm);
+
 	// argv1[0] = "hisat2-align-s";
 	// argv1[1] = "";
+
+	gfm.evictFromMemory();
 }
