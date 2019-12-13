@@ -227,11 +227,11 @@ BIN_PKG_LIST = $(GENERAL_LIST)
 
 .PHONY: all allall both both-debug
 
-all: $(HISAT2_BIN_LIST)
+all: hisat2-align-s
 
 allall: $(HISAT2_BIN_LIST) $(HISAT2_BIN_LIST_AUX)
 
-both: hisat2-align-s hisat2-align-l hisat2-build-s hisat2-build-l
+both: hisat2-align-s
 
 both-debug: hisat2-align-s-debug hisat2-align-l-debug hisat2-build-s-debug hisat2-build-l-debug
 
@@ -276,7 +276,7 @@ hisat2-build-s: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
 	$(DEFS) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall -DMASSIVE_DATA_RLCSA \
 	$(INC) \
 	-o $@ $< \
-	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS) \
+	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS_MAIN) \
 	$(LIBS) $(BUILD_LIBS)
 
 hisat2-build-l: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
