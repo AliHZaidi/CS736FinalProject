@@ -276,7 +276,7 @@ hisat2-build-s: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
 	$(DEFS) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall -DMASSIVE_DATA_RLCSA \
 	$(INC) \
 	-o $@ $< \
-	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS) \
+	$(SHARED_CPPS) $(SEARCH_CPPS) \
 	$(LIBS) $(BUILD_LIBS)
 
 hisat2-build-l: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
@@ -320,7 +320,7 @@ hisat2-align-s: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRA
 	$(DEFS) $(SRA_DEF) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall \
 	$(INC) $(SEARCH_INC) \
 	-o $@ $< \
-	$(SHARED_CPPS) $(HISAT2_CPPS_MAIN) \
+	$(SHARED_CPPS) $(SEARCH_CPPS) \
 	$(LIBS) $(SRA_LIB) $(SEARCH_LIBS) \
 	$(MRNET_INCLUDES)
 
