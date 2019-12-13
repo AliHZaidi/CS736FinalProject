@@ -276,7 +276,7 @@ hisat2-build-s: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
 	$(DEFS) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall -DMASSIVE_DATA_RLCSA \
 	$(INC) \
 	-o $@ $< \
-	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS_MAIN) \
+	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS) \
 	$(LIBS) $(BUILD_LIBS)
 
 hisat2-build-l: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)

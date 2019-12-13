@@ -4117,49 +4117,49 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 	}
 } // HISAT2 Function.
 
-// int main(int argc, char **argv)
-// {
-// 	// Load the Human Genome Index into memory.
-// 	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
-// 	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
+int main(int argc, char **argv)
+{
+	// Load the Human Genome Index into memory.
+	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
+	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
 
-// 	bt2index = std::string(HG38_INDEX_PATH);
-// 	altdb = new ALTDB<index_t>();
+	bt2index = std::string(HG38_INDEX_PATH);
+	altdb = new ALTDB<index_t>();
 
-// 	// Init the index - to be stored in memory.
-// 	HGFM<index_t, local_index_t> gfm(
-//                                      bt2index,
-//                                      altdb,
-//                                      -1,       // fw index
-//                                      true,     // index is for the forward direction
-//                                      /* overriding: */ offRate,
-//                                      0, // amount to add to index offrate or <= 0 to do nothing
-//                                      useMm,    // whether to use memory-mapped files
-//                                      useShmem, // whether to use shared memory
-//                                      mmSweep,  // sweep memory-mapped files
-//                                      !noRefNames, // load names?
-//                                      true,        // load SA sample?
-//                                      true,        // load ftab?
-//                                      true,        // load rstarts?
-//                                      !no_spliced_alignment, // load splice sites?
-//                                      gVerbose, // whether to be talkative
-//                                      startVerbose, // talkative during initialization
-//                                      false /*passMemExc*/,
-//                                      sanityCheck,
-//                                      use_haplotype); //use haplotypes?
+	// Init the index - to be stored in memory.
+	HGFM<index_t, local_index_t> gfm(
+                                     bt2index,
+                                     altdb,
+                                     -1,       // fw index
+                                     true,     // index is for the forward direction
+                                     /* overriding: */ offRate,
+                                     0, // amount to add to index offrate or <= 0 to do nothing
+                                     useMm,    // whether to use memory-mapped files
+                                     useShmem, // whether to use shared memory
+                                     mmSweep,  // sweep memory-mapped files
+                                     !noRefNames, // load names?
+                                     true,        // load SA sample?
+                                     true,        // load ftab?
+                                     true,        // load rstarts?
+                                     !no_spliced_alignment, // load splice sites?
+                                     gVerbose, // whether to be talkative
+                                     startVerbose, // talkative during initialization
+                                     false /*passMemExc*/,
+                                     sanityCheck,
+                                     use_haplotype); //use haplotypes?
 
-// 	gfm.loadIntoMemory(
-// 					-1, // not the reverse index
-// 					true,         // load SA samp? (yes, need forward index's SA samp)
-// 					true,         // load ftab (in forward index)
-// 					true,         // load rstarts (in forward index)
-// 					!noRefNames,  // load names?
-// 					startVerbose);
+	gfm.loadIntoMemory(
+					-1, // not the reverse index
+					true,         // load SA samp? (yes, need forward index's SA samp)
+					true,         // load ftab (in forward index)
+					true,         // load rstarts (in forward index)
+					!noRefNames,  // load names?
+					startVerbose);
 
 
-// 	char argv1[16][64];
-// 	char argv2[16][64];
+	char argv1[16][64];
+	char argv2[16][64];
 
-// 	argv1[0] = "hisat2-align-s";
-// 	argv1[1] = "";
-// }
+	// argv1[0] = "hisat2-align-s";
+	// argv1[1] = "";
+}
