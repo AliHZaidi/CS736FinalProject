@@ -38028,3 +38028,35 @@ samtools merge: failed to create "/afs/cs.wisc.edu/p/genome_mrnet/output/aligned
 Got exit message. Breaking.
 4.49user 8.55system 8:59:35elapsed 0%CPU (0avgtext+0avgdata 13328maxresident)k
 280inputs+0outputs (50major+4310minor)pagefaults 0swaps
+Creating Network.
+267908537.390940: UNKNOWN_THREAD(0x7fd4bdcee740): Network.C[840] init_FrontEnd - WARNING: Topology Root (royal-01) is not local host (snares-08)
+267908642.837341: CP(royal-03:22)(0x7f080cd06b80): (XPlat) SocketUtils.C[147] Connect - connect() to royal-01.cs.wisc.edu:51809 failed with 'Connection refused' after 15 tries
+267908642.837442: CP(royal-03:22)(0x7f080cd06b80): utils.C[55] connectHost - failed to connect to royal-01.cs.wisc.edu:51809
+267908642.837466: CP(royal-03:22)(0x7f080cd06b80): Error.C[54] perror - MRNet: System/library call failure: connectHost() failed
+267908642.837480: CP(royal-03:22)(0x7f080cd06b80): ChildNode.C[508] init_newChildDataConnection - connect_DataSocket() failed
+267908642.837493: CP(royal-03:22)(0x7f080cd06b80): InternalNode.C[52] InternalNode - init_newChildDataConnection() failed
+267908642.837805: CP(royal-02:21)(0x7ff61a966b80): (XPlat) SocketUtils.C[147] Connect - connect() to royal-01.cs.wisc.edu:51809 failed with 'Connection refused' after 15 tries
+267908642.837869: CP(royal-02:21)(0x7ff61a966b80): utils.C[55] connectHost - failed to connect to royal-01.cs.wisc.edu:51809
+267908642.837883: CP(royal-02:21)(0x7ff61a966b80): Error.C[54] perror - MRNet: System/library call failure: connectHost() failed
+267908642.837891: CP(royal-02:21)(0x7ff61a966b80): ChildNode.C[508] init_newChildDataConnection - connect_DataSocket() failed
+267908642.837900: CP(royal-02:21)(0x7ff61a966b80): InternalNode.C[52] InternalNode - init_newChildDataConnection() failed
+267908652.841406: EDT(royal-03:22)(0x7f080bb32700): (XPlat) SocketUtils.C[147] Connect - connect() to royal-01.cs.wisc.edu:51809 failed with 'Connection refused' after 5 tries
+267908652.841497: EDT(royal-03:22)(0x7f080bb32700): utils.C[55] connectHost - failed to connect to royal-01.cs.wisc.edu:51809
+267908652.841521: EDT(royal-03:22)(0x7f080bb32700): Error.C[54] perror - MRNet: System/library call failure: connectHost() failed
+267908652.841538: EDT(royal-03:22)(0x7f080bb32700): EventDetector.C[681] init_NewChildFDConnection - connect_EventSocket( royal-01.cs.wisc.edu:51809 ) failed
+267908652.841603: EDT(royal-03:22)(0x7f080bb32700): (XPlat) SocketUtils-unix.C[116] Send - Error: writev() failed with 'Bad file descriptor'
+267908652.841622: EDT(royal-03:22)(0x7f080bb32700): Message.C[332] send - XPlat::SocketUtils::Send() returned -1 of 68 bytes, nbuffers = 2
+267908652.841641: EDT(royal-03:22)(0x7f080bb32700): EventDetector.C[689] init_NewChildFDConnection - Message.send failed
+267908652.841668: EDT(royal-03:22)(0x7f080bb32700): EventDetector.C[372] main - init_NewChildFDConnection() failed
+267908652.840663: EDT(royal-02:21)(0x7ff619792700): (XPlat) SocketUtils.C[147] Connect - connect() to royal-01.cs.wisc.edu:51809 failed with 'Connection refused' after 5 tries
+267908652.840747: EDT(royal-02:21)(0x7ff619792700): utils.C[55] connectHost - failed to connect to royal-01.cs.wisc.edu:51809
+267908652.840766: EDT(royal-02:21)(0x7ff619792700): Error.C[54] perror - MRNet: System/library call failure: connectHost() failed
+267908652.840780: EDT(royal-02:21)(0x7ff619792700): EventDetector.C[681] init_NewChildFDConnection - connect_EventSocket( royal-01.cs.wisc.edu:51809 ) failed
+267908652.840845: EDT(royal-02:21)(0x7ff619792700): (XPlat) SocketUtils-unix.C[116] Send - Error: writev() failed with 'Bad file descriptor'
+267908652.840861: EDT(royal-02:21)(0x7ff619792700): Message.C[332] send - XPlat::SocketUtils::Send() returned -1 of 68 bytes, nbuffers = 2
+267908652.840876: EDT(royal-02:21)(0x7ff619792700): EventDetector.C[689] init_NewChildFDConnection - Message.send failed
+267908652.840898: EDT(royal-02:21)(0x7ff619792700): EventDetector.C[372] main - init_NewChildFDConnection() failed
+267908657.396454: FE(snares-08:20)(0x7fd4bdcee740): Error.C[54] perror - MRNet: Internal failure: waitfor_SubTreeInitDoneReports() failed
+Command terminated by signal 2
+0.18user 0.28system 1:15:21elapsed 0%CPU (0avgtext+0avgdata 4824maxresident)k
+0inputs+0outputs (0major+270minor)pagefaults 0swaps

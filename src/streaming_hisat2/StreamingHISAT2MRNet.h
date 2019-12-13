@@ -12,7 +12,7 @@ typedef enum {
     PROT_INIT_CONTROL_STREAM         // First message sent from FE to BE in control stream. Used for BE to learn control stream for sending messages.
 } Protocol;
                
-const unsigned INIT_CHUNKS_PER_BACKEND = 4;
+const unsigned INIT_CHUNKS_PER_BACKEND = 2;
 const unsigned MAX_NUMBER_CHUNKS = 4096;
 
 #endif /* hisat2_mrnet_h */
