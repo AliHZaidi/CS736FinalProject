@@ -3680,15 +3680,15 @@ static void driver(
 	}
 	// Sanity-check the restored version of the GFM
 	if(sanityCheck && !os.empty()) {
-		gfm.loadIntoMemory(
+		gfm->loadIntoMemory(
 			-1, // fw index
 			true, // load SA sample
 			true, // load ftab
 			true, // load rstarts
 			!noRefNames,
 			startVerbose);
-		gfm.checkOrigs(os, false);
-		gfm.evictFromMemory();
+		gfm->checkOrigs(os, false);
+		gfm->evictFromMemory();
 	}
     {
         // Load the other half of the index into memory
@@ -3918,7 +3918,7 @@ static void driver(
                         gpol,
                         *patsrc, // pattern source
                         *mssink, // hit sink
-                        gfm,     // BWT
+                        *gfm,     // BWT
                         refs.get(),
                         metricsOfb);
 		// Evict any loaded indexes from memory
@@ -4097,7 +4097,7 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 				cout << "Press key to continue..." << endl;
 				getchar();
 			}
-			driver<SString<char> >("DNA", bt2index, outfile. gfm);
+			driver<SString<char> >("DNA", bt2index, outfile, gfm);
 		}
 		return 0;
 	} catch(std::exception& e) {
