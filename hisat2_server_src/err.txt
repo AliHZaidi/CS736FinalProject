@@ -1,0 +1,4 @@
+Error: Encountered exception: 'Cannot open file gfm.h - line 4030'
+Command: ./hisat2-align-s -U /p/genome_mrnet/hisat2_example/reads/reads_1.fa -S /p/genome_mrnet/hisat2_example/reads/aligned_1.sam -f 
+Error: Encountered exception: 'Cannot open file gfm.h - line 4030'
+Command: ./hisat2-align-s -U /p/genome_mrnet/hisat2_example/reads/reads_2.fa -S /p/genome_mrnet/hisat2_example/reads/aligned_2.sam -f 

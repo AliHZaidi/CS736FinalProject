@@ -4027,7 +4027,7 @@ void readEbwtRefnames(const string& instr, EList<string>& refnames) {
     // Initialize our primary and secondary input-stream fields
     in.open((instr + ".1." + gfm_ext).c_str(), ios_base::in | ios::binary);
     if(!in.is_open()) {
-        throw GFMFileOpenException("Cannot open file " + instr);
+        throw GFMFileOpenException("Cannot open file " + instr + "gfm.h - line 4030");
     }
     assert(in.is_open());
     assert(in.good());
@@ -6087,7 +6087,7 @@ void readGFMRefnames(const string& instr, EList<string>& refnames) {
     // Initialize our primary and secondary input-stream fields
     in.open((instr + ".1." + gfm_ext).c_str(), ios_base::in | ios::binary);
     if(!in.is_open()) {
-        throw GFMFileOpenException("Cannot open file " + instr);
+        throw GFMFileOpenException("Cannot open file " + instr + "gfm.h line 6090");
     }
     assert(in.is_open());
     assert(in.good());
@@ -6104,7 +6104,7 @@ int32_t GFM<index_t>::readVersionFlags(const string& instr, int& major, int& min
     // Initialize our primary and secondary input-stream fields
     in.open((instr + ".1." + gfm_ext).c_str(), ios_base::in | ios::binary);
     if(!in.is_open()) {
-        throw GFMFileOpenException("Cannot open file " + instr);
+        throw GFMFileOpenException("Cannot open file " + instr + "gfm.h line 6107");
     }
     assert(in.is_open());
     assert(in.good());

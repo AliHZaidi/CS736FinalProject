@@ -4126,7 +4126,8 @@ int main(int argc, char **argv)
 	bt2index = std::string(EXAMPLE_INDEX_PATH);
 	altdb = new ALTDB<index_t>();
 
-	// Init the index - to be stored in memory.
+	// Init the index - to be stored in memory
+	std::cout << "Building index with base " << bt2index << std::endl;
 	HGFM<index_t, local_index_t> gfm(
                                      bt2index,
                                      altdb,
@@ -4147,7 +4148,7 @@ int main(int argc, char **argv)
                                      false /*passMemExc*/,
                                      sanityCheck,
                                      use_haplotype); //use haplotypes?
-
+        std::cout << "Loading index" << std::endl;
 	gfm.loadIntoMemory(
 					-1, // not the reverse index
 					true,         // load SA samp? (yes, need forward index's SA samp)
@@ -4156,32 +4157,41 @@ int main(int argc, char **argv)
 					!noRefNames,  // load names?
 					startVerbose);
 
+        std::cout << "Building arguments" << std::endl;
+	char *argv1[16];
+	char *argv2[16];
 
-	char argv1[16][64];
-	char argv2[16][64];
-
-	bcopy("./hisat2-align-s", argv1[0], 17);
-	bcopy("-S", argv1[1], 3);
-	bcopy("/p/genome_mrnet/hist2_example/reads/reads_1.fa", argv1[2], 49);
-	bcopy("-U", argv1[3], 3);
-	bcopy("/p/genome_mrnet/hisat2_example/reads/aligned_1.sam" argv1[4], 51);
-	bcopy("-f", argv1[5], 3);
+	argv1[0] = "./hisat2-align-s";
+	argv1[1] = "-U";
+	argv1[2] = "/p/genome_mrnet/hisat2_example/reads/reads_1.fa";
+	argv1[3] = "-S";
+	argv1[4] = "/p/genome_mrnet/hisat2_example/reads/aligned_1.sam";
+	argv1[5] = "-f";
 	argv1[6] = NULL;
 
-	bcopy("./hisat2-align-s", argv2[0], 17);
-	bcopy("-S", argv2[1], 3);
-	bcopy("/p/genome_mrnet/hist2_example/reads/reads_2.fa", argv2[2], 49);
-	bcopy("-U", argv2[3], 3);
-	bcopy("/p/genome_mrnet/hisat2_example/reads/aligned_2.sam", argv2[4], 51);
-	bcopy("-f", argv2[5], 3);
+	argv2[0] = "./hisat2-align-s";
+	argv2[1] = "-U";
+	argv2[2] = "/p/genome_mrnet/hisat2_example/reads/reads_2.fa";
+	argv2[3] = "-S";
+	argv2[4] = "/p/genome_mrnet/hisat2_example/reads/aligned_2.sam";
+	argv2[5] = "-f";
 	argv1[6] = NULL;
 
-	hisat2(7, argv1, gfm);
+	std::cout << "Testing const args" << std::endl;
 
-	hisat2(7, argv2, gfm);
+	const_cast<const char**>(argv1);
+	
+	std::cout << "Running hisat2 for the first time" << std::endl;
 
+	hisat2(6, const_cast<const char **>(argv1), &gfm);
+
+	std::cout << "Finished running" << std::endl;
+	hisat2(6, const_cast<const char **>(argv2), &gfm);
+
+        std::cout << "Removing index" << std::endl;
 	// argv1[0] = "hisat2-align-s";
 	// argv1[1] = "";
 
 	gfm.evictFromMemory();
+	std::cout << "Ending" << std::endl;
 }
