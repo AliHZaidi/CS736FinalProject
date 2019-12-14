@@ -1,5 +1,6 @@
 #
 # Copyright 2015, Daehwan Kim <infphilo@gmail.com>
+# Modiefied for use on the CS736 Final Project.
 #
 # This file is part of HISAT2.
 #
