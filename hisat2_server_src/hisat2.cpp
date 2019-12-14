@@ -296,7 +296,7 @@ static void resetOptions() {
 	mates1.clear();
 	mates2.clear();
 	mates12.clear();
-	adjIdxBase	            = "";
+	// adjIdxBase	            = "";
 	gColor                  = false;
 	gVerbose                = 0;
 	startVerbose			= 0;
@@ -4007,14 +4007,14 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 			}
 
 			// Get index basename (but only if it wasn't specified via --index)
-			if(bt2index.empty()) {
-				if(optind >= argc) {
-					cerr << "No index, query, or output file specified!" << endl;
-					printUsage(cerr);
-					return 1;
-				}
-				bt2index = argv[optind++];
-			}
+			// if(bt2index.empty()) {
+			// 	if(optind >= argc) {
+			// 		cerr << "No index, query, or output file specified!" << endl;
+			// 		printUsage(cerr);
+			// 		return 1;
+			// 	}
+			// 	bt2index = argv[optind++];
+			// }
 
 			// Get query filename
 			bool got_reads = !queries.empty() || !mates1.empty() || !mates12.empty();
@@ -4124,6 +4124,8 @@ int main(int argc, char **argv)
 	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
 
 	bt2index = std::string(EXAMPLE_INDEX_PATH);
+	adjIdxBase = std::string(EXAMPLE_INDEX_PATH);
+	
 	altdb = new ALTDB<index_t>();
 
 	// Init the index - to be stored in memory
