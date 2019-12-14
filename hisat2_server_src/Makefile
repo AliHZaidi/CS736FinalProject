@@ -303,9 +303,9 @@ hisat2-build-l-debug: hisat2_build.cpp $(SHARED_CPPS) $(HEADERS)
 	$(SHARED_CPPS) $(HISAT2_BUILD_CPPS_MAIN) \
 	$(LIBS) $(BUILD_LIBS)
 
+
 #
-# hisat2 targets
-#
+# CS736 Project - MRNET Rules
 
 XPLAT_CONFIG_PATH=/usr/local/lib/xplat-5.0.1/include/
 LIB_PATH=/usr/local/lib
@@ -313,6 +313,43 @@ MRNET_LIB=mrnet
 XPLAT_LIB=xplat
 LDFLAGS =  -Wl,-E
 MRNET_INCLUDES=-I $(XPLAT_CONFIG_PATH) -L $(LIB_PATH) -l $(MRNET_LIB) -l $(XPLAT_LIB) -l pthread -ldl $(LDFLAGS)
+
+SFrontEnd: SFrontEnd.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
+
+SFrontEnd.o: streaming_hisat2/SFrontEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
+	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
+
+SMergeFilter.so: streaming_hisat2/SMergeFilter.cpp Executables.h Executables.o
+	$(CXX) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(SOFLAGS)
+
+SFilterBackend: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS)
+	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
+	$(DEFS) $(SRA_DEF) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall \
+	$(INC) $(SEARCH_INC) \
+	-o $@ $< Utils.o Executables.o \
+	$(SHARED_CPPS) $(SEARCH_CPPS) \
+	$(LIBS) $(SRA_LIB) $(SEARCH_LIBS) \
+	$(MRNET_INCLUDES)
+
+
+# Below : Basic Utils Binaries & Programs
+
+PartitionFA: PartitionFA.o Utils.o Executables.o
+	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o
+
+PartitionFA.o: PartitionFA.cpp Utils.h Executables.h
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
+
+Utils.o: Utils.cpp Utils.h Executables.h Executables.o
+	$(CXX) $(CXX_FLAGS) -c $< -o $@ -fPIC
+
+Executables.o: Executables.cpp Executables.h
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
+
+#
+# hisat2 targets
+#
 
 
 hisat2-align-s: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS)
