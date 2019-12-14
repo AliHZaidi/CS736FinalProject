@@ -227,7 +227,7 @@ BIN_PKG_LIST = $(GENERAL_LIST)
 
 .PHONY: all allall both both-debug
 
-all: hisat2-align-s
+all: hisat2-align-s hisat2-align-s-debug
 
 allall: $(HISAT2_BIN_LIST) $(HISAT2_BIN_LIST_AUX)
 
@@ -341,7 +341,7 @@ hisat2-align-s-debug: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEAR
 	$(DEFS) $(SRA_DEF) -DBOWTIE2 -Wall \
 	$(INC) $(SEARCH_INC) \
 	-o $@ $< \
-	$(SHARED_CPPS) $(HISAT2_CPPS_MAIN) \
+	$(SHARED_CPPS) $(SEARCH_CPPS) \
 	$(LIBS) $(SRA_LIB) $(SEARCH_LIBS) \
 	$(MRNET_INCLUDES)
 

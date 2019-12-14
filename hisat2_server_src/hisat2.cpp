@@ -3854,7 +3854,6 @@ static void driver(
                          altdb->haplotypes().size() > 0 && use_haplotype,
                          enable_codis);
         
-        init_junction_prob();
         bool write = novelSpliceSiteOutfile != "" || useTempSpliceSite;
         bool read = knownSpliceSiteInfile != "" || novelSpliceSiteInfile != "" || useTempSpliceSite || altdb->hasSpliceSites();
         ssdb = new SpliceSiteDB(
@@ -3963,7 +3962,7 @@ static void driver(
 		assert_eq(oq.numStarted(), oq.numFlushed());
 		delete patsrc;
 		delete mssink;
-        delete altdb;
+        // delete altdb;
         delete ssdb;
 		delete metricsOfb;
 		if(fout != NULL) {
@@ -4159,6 +4158,8 @@ int main(int argc, char **argv)
 					!noRefNames,  // load names?
 					startVerbose);
 
+	init_junction_prob();
+
         std::cout << "Building arguments" << std::endl;
 	char *argv1[16];
 	char *argv2[16];
@@ -4195,5 +4196,6 @@ int main(int argc, char **argv)
 	// argv1[1] = "";
 
 	gfm.evictFromMemory();
+	delete altdb;
 	std::cout << "Ending" << std::endl;
 }
