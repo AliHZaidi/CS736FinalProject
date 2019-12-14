@@ -228,7 +228,7 @@ BIN_PKG_LIST = $(GENERAL_LIST)
 
 .PHONY: all allall both both-debug
 
-all: hisat2-align-s hisat2-align-s-debug
+all: PartitionFA SFrontEnd SMergeFilter.so SBackend
 
 allall: $(HISAT2_BIN_LIST) $(HISAT2_BIN_LIST_AUX)
 
@@ -324,7 +324,7 @@ SFrontEnd.o: streaming_hisat2/SFrontEnd.cpp streaming_hisat2/StreamingHISAT2MRNe
 SMergeFilter.so: streaming_hisat2/SMergeFilter.cpp Executables.h Executables.o
 	$(CXX) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(SOFLAGS)
 
-SFilterBackend: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS)
+SBackend: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS) Utils.o Executables.o
 	$(CXX) $(RELEASE_FLAGS) $(RELEASE_DEFS) $(EXTRA_FLAGS) \
 	$(DEFS) $(SRA_DEF) -DBOWTIE2 $(NOASSERT_FLAGS) -Wall \
 	$(INC) $(SEARCH_INC) \
