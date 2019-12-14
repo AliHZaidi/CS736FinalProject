@@ -313,15 +313,16 @@ LIB_PATH=/usr/local/lib
 MRNET_LIB=mrnet
 XPLAT_LIB=xplat
 LDFLAGS =  -Wl,-E
+SOFLAGS =  -fPIC -shared -rdynamic 
 MRNET_INCLUDES=-I $(XPLAT_CONFIG_PATH) -L $(LIB_PATH) -l $(MRNET_LIB) -l $(XPLAT_LIB) -l pthread -ldl $(LDFLAGS)
 
 SFrontEnd: SFrontEnd.o Utils.o Executables.o
 	$(CXX) $(CXX_FLAGS) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(LDFLAGS)
 
-SFrontEnd.o: streaming_hisat2/SFrontEnd.cpp streaming_hisat2/StreamingHISAT2MRNet.h Utils.h Executables.h
+SFrontEnd.o: SFrontEnd.cpp StreamingHISAT2MRNet.h Utils.h Executables.h
 	$(CXX) -c $< -o $@  $(MRNET_INCLUDES) $(LDFLAGS)
 
-SMergeFilter.so: streaming_hisat2/SMergeFilter.cpp Executables.h Executables.o
+SMergeFilter.so: SMergeFilter.cpp Executables.h Executables.o Utils.h Utils.o
 	$(CXX) -o $@ $< Utils.o Executables.o $(MRNET_INCLUDES) $(SOFLAGS)
 
 SBackend: hisat2.cpp $(SEARCH_CPPS) $(SHARED_CPPS) $(HEADERS) $(SEARCH_FRAGMENTS) Utils.o Executables.o

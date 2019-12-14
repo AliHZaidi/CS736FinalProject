@@ -3659,32 +3659,6 @@ static void driver(
 	} else {
 		fout = new OutFileBuf();
 	}
-	// Initialize GFM object and read in header
-	// if(gVerbose || startVerbose) {
-	// 	cerr << "About to initialize fw GFM: "; logTime(cerr, true);
-	// }
-    // altdb = new ALTDB<index_t>();
-	// adjIdxBase = adjustEbwtBase(argv0, bt2indexBase, gVerbose);
-	// HGFM<index_t, local_index_t> gfm(
-    //                                  adjIdxBase,
-    //                                  altdb,
-    //                                  -1,       // fw index
-    //                                  true,     // index is for the forward direction
-    //                                  /* overriding: */ offRate,
-    //                                  0, // amount to add to index offrate or <= 0 to do nothing
-    //                                  useMm,    // whether to use memory-mapped files
-    //                                  useShmem, // whether to use shared memory
-    //                                  mmSweep,  // sweep memory-mapped files
-    //                                  !noRefNames, // load names?
-    //                                  true,        // load SA sample?
-    //                                  true,        // load ftab?
-    //                                  true,        // load rstarts?
-    //                                  !no_spliced_alignment, // load splice sites?
-    //                                  gVerbose, // whether to be talkative
-    //                                  startVerbose, // talkative during initialization
-    //                                  false /*passMemExc*/,
-    //                                  sanityCheck,
-    //                                  use_haplotype); //use haplotypes?
 	if(sanityCheck && !os.empty()) {
 		// Sanity check number of patterns and pattern lengths in GFM
 		// against original strings
@@ -4020,16 +3994,6 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 				cerr << "Parsing index and read arguments: "; logTime(cerr, true);
 			}
 
-			// Get index basename (but only if it wasn't specified via --index)
-			// if(bt2index.empty()) {
-			// 	if(optind >= argc) {
-			// 		cerr << "No index, query, or output file specified!" << endl;
-			// 		printUsage(cerr);
-			// 		return 1;
-			// 	}
-			// 	bt2index = argv[optind++];
-			// }
-
 			// Get query filename
 			bool got_reads = !queries.empty() || !mates1.empty() || !mates12.empty();
 #ifdef USE_SRA
@@ -4197,28 +4161,24 @@ int align_file(char *input_file, char* output_file, HGFM<index_t, local_index_t>
 
 int main(int argc, char **argv)
 {
-	// Load the Human Genome Index into memory.
-	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
-	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
+    MRN::Stream *stream         = NULL; // Used to read in the stream value from each recv call.
+    MRN::Stream *control_stream = NULL; // For sending control packets directly to/from parent & backends
+    MRN::Stream *data_stream    = NULL; // For sending data up and down through filters.
 
-    Stream *stream         = NULL; // Used to read in the stream value from each recv call.
-    Stream *control_stream = NULL; // For sending control packets directly to/from parent & backends
-    Stream *data_stream    = NULL; // For sending data up and down through filters.
-
-    PacketPtr p;
+    MRN::PacketPtr p;
     int tag = 0;
 
     bool block_recv;           // Whether or not we block on a receive op.
     bool end_signaled = false; // Set to true when the Front End signals the end of communication.
     bool fin_pkt_sent = false; // Sent after the fin packet for this node has been sent. 
 
-    std::cout << "Creating backend network object." << std::endl;
-    Network * network = Network::CreateNetworkBE(argc, argv);
+    std::cout << "Creating backentd network object." << std::endl;
+    MRN::Network * network = MRN::Network::CreateNetworkBE(argc, argv);
     std::cout << "Created backend network object." << std::endl;
 
 	// SEGMENT - INITIALIZING DATA STRUCTURES
-	bt2index = std::string(EXAMPLE_INDEX_PATH);
-	adjIdxBase = std::string(EXAMPLE_INDEX_PATH);
+	bt2index = std::string(HG38_INDEX_PATH);
+	adjIdxBase = std::string(HG38_INDEX_PATH);
 	
 	altdb = new ALTDB<index_t>();
 
