@@ -27,6 +27,7 @@
 #include <math.h>
 #include <utility>
 #include <limits>
+
 #include "alphabet.h"
 #include "assert_helpers.h"
 #include "endian_swap.h"
@@ -56,7 +57,21 @@
 #include "opts.h"
 #include "outq.h"
 
+#include <sstream>
+#include <vector>
+
+// For fork-exec-wait
+#include <unistd.h>
+#include <sys/wait.h>
+
+#include <stdio.h>
+#include <unistd.h>
+
 #include "mrnet/MRNet.h"
+
+#include "StreamingHISAT2MRNet.h"
+#include "Executables.h"
+#include "Utils.h"
 
 using namespace std;
 
@@ -4116,12 +4131,92 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 	}
 } // HISAT2 Function.
 
+/*
+ * Run HISAT2 on the given input file.
+ * Current Implementation - Uses Samtools
+ */
+int compress_file(char *input_file, char *output_file)
+{
+    int pid;
+    pid = fork();
+    if(pid == -1)
+    {
+        std::cerr << "Error in fork() call on backend." << std::endl;
+        return -1;
+    }
+
+    if(pid == 0)
+    {
+        // In child
+        char exe_path[PATH_MAX + 1];
+
+        bcopy(SAMTOOLS_PATH, exe_path, PATH_MAX + 1);
+        
+        // Args for execution.
+        // Fixed size vector at this point; we can screw around with this if we want to make it more flexible.
+        char *argv[7];
+	    argv[0] = exe_path;
+        argv[1] = "view";
+        argv[2] = "-b";
+        argv[3] = "-o";
+        argv[4] = output_file;
+        argv[5] = input_file;
+        argv[6] = NULL;
+        std::cout << "Input file: " << input_file << std::endl;
+        std::cout << "Output file: " << output_file << std::endl;
+        execvp(argv[0], argv);
+    }
+    else
+    {
+        // In Parent.
+        // TODO: Possibly look into wait_status to see if HISAT2 executed properly.
+        int status;
+        wait(&status);
+        remove(input_file);
+    }
+
+    return 0;
+}
+
+/**
+ * Compress the given input .sam file into a .bam files by callign samtools merge
+ */
+int align_file(char *input_file, char* output_file, HGFM<index_t, local_index_t> *gfm)
+{
+	char *argv[7];
+	argv[0] = "hisat2-align-s";
+	argv[1] = "-f";
+	argv[2] = "-S";
+	argv[3] = output_file;
+	argv[4] = "-U";
+	argv[5] = input_file;
+	argv[6] = NULL;
+
+	return hisat2(6, const_cast<const char **>(argv), gfm);
+}
+
 int main(int argc, char **argv)
 {
 	// Load the Human Genome Index into memory.
 	const char *HG38_INDEX_PATH    = "/p/genome_mrnet/reference/hg38_ind";
 	const char *EXAMPLE_INDEX_PATH = "/p/genome_mrnet/hisat2_example/index/22_20-21M_snp";
 
+    Stream *stream         = NULL; // Used to read in the stream value from each recv call.
+    Stream *control_stream = NULL; // For sending control packets directly to/from parent & backends
+    Stream *data_stream    = NULL; // For sending data up and down through filters.
+
+    PacketPtr p;
+    int tag = 0;
+
+    bool block_recv;           // Whether or not we block on a receive op.
+    bool end_signaled = false; // Set to true when the Front End signals the end of communication.
+    bool fin_pkt_sent = false; // Sent after the fin packet for this node has been sent. 
+
+    std::cout << "Creating backend network object." << std::endl;
+    Network * network = Network::CreateNetworkBE(argc, argv);
+    std::cout << "Created backend network object." << std::endl;
+
+	// SEGMENT - INITIALIZING DATA STRUCTURES
 	bt2index = std::string(EXAMPLE_INDEX_PATH);
 	adjIdxBase = std::string(EXAMPLE_INDEX_PATH);
 	
@@ -4160,42 +4255,177 @@ int main(int argc, char **argv)
 
 	init_junction_prob();
 
-        std::cout << "Building arguments" << std::endl;
-	char *argv1[16];
-	char *argv2[16];
+    char *filename_ptr_in;
+    char *filename_ptr_out;
+    char filename_ptr_bam[PATH_MAX + 1];
 
-	argv1[0] = "./hisat2-align-s";
-	argv1[1] = "-U";
-	argv1[2] = "/p/genome_mrnet/hisat2_example/reads/reads_1.fa";
-	argv1[3] = "-S";
-	argv1[4] = "/p/genome_mrnet/hisat2_example/reads/aligned_1.sam";
-	argv1[5] = "-f";
-	argv1[6] = NULL;
+    std::string filename_in;
+    std::string filename_out;
+    std::string filename_out_bam;
 
-	argv2[0] = "./hisat2-align-s";
-	argv2[1] = "-U";
-	argv2[2] = "/p/genome_mrnet/hisat2_example/reads/reads_2.fa";
-	argv2[3] = "-S";
-	argv2[4] = "/p/genome_mrnet/hisat2_example/reads/aligned_2.sam";
-	argv2[5] = "-f";
-	argv1[6] = NULL;
+    int ret;
+    std::vector<std::string> chunks_to_make_inputs;
+    std::vector<std::string> chunks_to_make_outputs;
 
-	std::cout << "Testing const args" << std::endl;
+    // Main Execution loop.
+    do
+    {
+        // See if we block on next receive
+        // (If we have more input to process, do we not do block.)
+        block_recv = (chunks_to_make_inputs.size() == 0 || control_stream == NULL);
+        // If we block for receive - do a standard receive operation.
+        // Then, flush out the rest of the buffer.
 
-	const_cast<const char**>(argv1);
-	
-	std::cout << "Running hisat2 for the first time" << std::endl;
+        // If we don't block for receive - skip right to flushing out the buffer.
+        std::cout << "BE Recv calling." << std::endl;
+        if(block_recv)
+        {
+            std::cout << "Blocking on receive" << std::endl;
+            if(network->recv(&tag, p, &stream, true) != 1)
+            {
+                fprintf(stderr, "stream::recv() failure\n");
+                return -1;
+            }
 
-	hisat2(6, const_cast<const char **>(argv1), &gfm);
+            switch(tag)
+            {
+                case PROT_ALIGN:
+                    std::cout << "Backend received align message" << std::endl;
+                    data_stream = stream;
+                    p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
 
-	std::cout << "Finished running" << std::endl;
-	hisat2(6, const_cast<const char **>(argv2), &gfm);
+                    // Will this change as char *s change?
+                    chunks_to_make_inputs.push_back(std::string(filename_ptr_in));
+                    chunks_to_make_outputs.push_back(std::string(filename_ptr_out));
 
-        std::cout << "Removing index" << std::endl;
-	// argv1[0] = "hisat2-align-s";
-	// argv1[1] = "";
+                    break;
+                case PROT_EXIT:
+                    std::cout << "Backend received new message - end exeuction." << std::endl;
+                    control_stream = stream;
+                    end_signaled = true;
+                    break;
+                case PROT_INIT_CONTROL_STREAM:
+                    control_stream = stream;
+                    break;
+                default:
+                    std::cerr << "Error - tag not recognized (Backend)." << std::endl;
+                    return -1;
+            }
+        }
 
+        // Loop - Receive and process all remaining packets in the buffer.
+        while(true)
+        {
+            ret = network->recv(&tag, p, &stream, false);
+            
+            // Case - packet read
+            if(ret == 1)
+            {
+                // Unpack and process packet.
+                switch(tag)
+                {
+                    case PROT_ALIGN:
+                        std::cout << "Backend received align message" << std::endl;
+                        data_stream = stream;
+                        p->unpack("%s %s", &filename_ptr_in, &filename_ptr_out);
+
+                        // Will this change as char *s change?
+                        chunks_to_make_inputs.push_back(std::string(filename_ptr_in));
+                        chunks_to_make_outputs.push_back(std::string(filename_ptr_out));
+
+                        break;
+                    case PROT_EXIT:
+                        std::cout << "Backend received new message - end exeuction." << std::endl;
+                        control_stream = stream;
+                        end_signaled = true;
+                        break;
+                    case PROT_INIT_CONTROL_STREAM:
+                        control_stream = stream;
+                        break;
+                    default:
+                        std::cerr << "Error - tag not recognized (Backend)." << std::endl;
+                        return -1;
+                }
+
+                continue;
+            }
+            // Case - no more packets to read.
+            else if(ret == 0)
+            {
+                break;
+            }
+            // Case - Error
+            else
+            {
+                fprintf(stderr, "stream::recv() failure\n");
+                return -1;                    
+            }
+        }
+        std::cout << "Finished Receiving" << std::endl;
+
+        // Generate and send a packet.
+        if(chunks_to_make_inputs.size() > 0 && control_stream != NULL)
+        {
+            // Generate & Send a packet.
+            if(data_stream == NULL || control_stream == NULL)
+            {
+                fprintf(stderr, "Stream is null on chunck send\n");
+                return -1;
+            }
+
+            // Generate a data array & send it out the data stream.
+            filename_in = chunks_to_make_inputs.back();
+            chunks_to_make_inputs.pop_back();
+            filename_out = chunks_to_make_outputs.back();
+            chunks_to_make_outputs.pop_back();
+            filename_out_bam = filename_sam_to_bam(filename_out.c_str());
+
+            // Alignment OP.
+            align_file(filename_ptr_in, filename_ptr_out, &gfm);
+
+            bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
+            compress_file(filename_ptr_out, filename_ptr_bam);
+
+            // Possibly commands for SAMTOOLS INDEX, SAMTOOLS SORT?
+
+            if(data_stream->send(PROT_MERGE, "%s",filename_out_bam.c_str()) == -1)
+            {
+                fprintf(stderr, "Error in stream send.\n");
+            }
+            if(data_stream->flush() == -1)
+            {
+                std::cerr << "Error in flushing stream." << std::endl;
+            }
+
+            // Request FE for another chunk.
+            if(control_stream->send(PROT_CHUNK_REQUEST, "") == -1)
+            {
+                std::cerr << "Error in sending to control stream." << std::endl;
+            }
+            if(control_stream->flush() == -1)
+            {
+                std::cerr << "Error in flushing control stream." << std::endl;
+            }        
+        }
+
+        // Send a 'fin' packet if conditions are met.
+        if(end_signaled && (chunks_to_make_inputs.size() == 0))
+        {
+            std::cout << "BE signaling the end." << std::endl;
+            data_stream->send(PROT_SUBTREE_EXIT, "");
+            data_stream->flush();
+            fin_pkt_sent = true;
+        }
+        /* code */
+    } while (!fin_pkt_sent);
+
+	std::cout << "Removing index" << std::endl;	
+	// SECTION - CLEANUP/ENDING
 	gfm.evictFromMemory();
 	delete altdb;
 	std::cout << "Ending" << std::endl;
+
+	network->waitfor_ShutDown();
+    delete network;
+    return 0;
 }
