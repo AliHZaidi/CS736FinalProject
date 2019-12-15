@@ -1,3 +1,6 @@
 local/
 .vscode/
 *.o
+*.so
+*.__afs*
+*.swp

@@ -1,0 +1,24 @@
+royal-01:0 =>
+    royal-02:1
+    royal-03:2
+    royal-04:3
+    royal-05:4;
+
+royal-02:1 =>
+    royal-06:5
+    royal-07:6
+    royal-09:7;
+
+royal-03:2 =>
+    royal-10:8
+    royal-11:9
+    royal-13:10;
+
+royal-04:3 =>
+    royal-20:11
+    royal-16:12
+    royal-17:13;
+
+royal-05:4 =>
+    royal-18:14
+    royal-19:15;
