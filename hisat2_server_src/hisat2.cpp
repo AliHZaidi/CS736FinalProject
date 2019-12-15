@@ -15,6 +15,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with HISAT 2.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * This file has been modified for use in the CS736 Final Project
+ * to act as an 'MRNet BackEnd' server node. Particularly, the logic
+ * for back-end flow control has been added and modifications have been
+ * made to factor out the Reference Index datastructures and cache them in
+ * RAM for re-use, while maintining integrity for repeated alignment operations.
  */
 
 #include <stdlib.h>
@@ -4097,7 +4103,7 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 
 /*
  * Run HISAT2 on the given input file.
- * Current Implementation - Uses Samtools
+ * Current Implementation - Uses Samtools - TBReplaced
  */
 int compress_file(char *input_file, char *output_file)
 {
@@ -4144,6 +4150,7 @@ int compress_file(char *input_file, char *output_file)
 
 /**
  * Compress the given input .sam file into a .bam files by callign samtools merge
+ * Calls directly into main HISAT2 logic as-is, and re-uses the alignment index
  */
 int align_file(char *input_file, char* output_file, HGFM<index_t, local_index_t> *gfm)
 {
@@ -4159,6 +4166,9 @@ int align_file(char *input_file, char* output_file, HGFM<index_t, local_index_t>
 	return hisat2(6, const_cast<const char **>(argv), gfm);
 }
 
+/**
+ *	Main function for MRNet backend.
+ */
 int main(int argc, char **argv)
 {
     MRN::Stream *stream         = NULL; // Used to read in the stream value from each recv call.
