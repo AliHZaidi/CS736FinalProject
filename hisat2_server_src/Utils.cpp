@@ -43,6 +43,9 @@ std::string filename_extension(const char *f_name)
     return NULL;
 }
 
+/**
+ * Return a string for the filename that the given file is found in.
+ */
 std::string filename_dir(const char *f_name)
 {
     std::string path_str = f_name;
@@ -123,6 +126,9 @@ std::vector<std::string> get_chunk_filenames(std::string file_name, unsigned num
     return chunk_paths;
 }
 
+/**
+ * Concat filenames for on 'chunk' file - used for creating intermediate temp files.
+ */
 std::string concat_chunk_filenames(std::vector<std::string> filenames)
 {
     if(filenames.size() == 0)
@@ -166,6 +172,17 @@ std::string get_final_filename(std::vector<std::string> filenames)
     ss << f_stem << "." << f_ext;
 
     return ss.str();
+}
+
+std::string filename_temp(const char *filename)
+{
+   std::stringstream ss;
+
+    ss << filename_stem(filename);
+    ss << ".tmp.";
+    ss << filename_extension(filename);
+
+    return ss.str();    
 }
 
 std::string filename_sam_to_bam(const char *filename)

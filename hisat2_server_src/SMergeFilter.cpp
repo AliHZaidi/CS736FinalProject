@@ -26,6 +26,7 @@ extern "C"
         int num_children_exited; // Number of child nodes that have reported that they are finished.
 
         char *buffer[MAX_NUMBER_CHUNKS];            // Current buffer of integer arrays (to be merged).
+        char *full_aligned_file_name;
         int curr_buffer_size;
     };
 
@@ -42,7 +43,6 @@ extern "C"
         if(pid == 0)
         {
             // In child
-            // lol
             std::cout << "Merging in child." << std::endl;
             char *argv[MAX_NUMBER_CHUNKS + 5];
             for(uint i = 0; i < MAX_CHILDREN_PER_NODE - 1; ++i)
@@ -67,8 +67,6 @@ extern "C"
             {
                 std::cout << "Argument: " << argv[i++] << std::endl;
             }
-            // std::cout << "Input file: " << input_file << std::endl;
-            // std::cout << "Output file: " << output_file << std::endl;
             execvp(argv[0], argv);
         }
         else
@@ -80,6 +78,63 @@ extern "C"
             for(const auto &input_file : input_files)
             {
                remove(input_file.c_str());
+            }
+        }
+
+        return 0;    
+    }
+
+    int merge_bam_files_sequence(std::vector<std::string> input_files, std::string out_file, std::string out_tmp_file)
+    {
+        int pid;
+        for(const auto &input_file : input_files)
+        {
+            pid = fork();
+            if(pid == -1)
+            {
+                std::cerr << "Error in fork() call on backend." << std::endl;
+                return -1;
+            }
+
+            if(pid == 0)
+            {
+                // In child
+                std::cout << "Merging in child." << std::endl;
+                char *argv[MAX_NUMBER_CHUNKS + 5];
+                for(uint i = 0; i < MAX_NUMBER_CHUNKS - 1; ++i)
+                {
+                    argv[i] = (char *) malloc(sizeof(char) * (PATH_MAX + 1));
+                }
+                bcopy(SAMTOOLS_PATH, argv[0], PATH_MAX + 1);
+                bcopy("merge", argv[1], PATH_MAX + 1);
+                bcopy(out_tmp_file.c_str(), argv[2], PATH_MAX + 1);
+                
+                int i = 3;
+                bcopy(input_file.c_str(), argv[i], PATH_MAX + 1);
+                ++i;
+
+                bcopy(out_file.c_str(), argv[i], PATH_MAX + 1);
+                ++i;
+
+                argv[i] = NULL;
+
+                i = 0;
+                while(argv[i] != NULL)
+                {
+                    std::cout << "Argument: " << argv[i++] << std::endl;
+                }
+                execvp(argv[0], argv);
+            }
+            else
+            {
+                // In Parent.
+                int status;
+                wait(&status);
+
+                remove(out_file.c_str());
+                rename(out_tmp_file.c_str(), out_file.c_str());
+                remove(input_file.c_str());
+                
             }
         }
 
@@ -178,17 +233,6 @@ extern "C"
             state->curr_buffer_size = 0;
 
             *filter_state = (void *) state;
-
-            // std::cout << "Filter Num Children: " << state->num_children << std::endl;
-            // std::cout << "Filter Num Children Exited: " << state->num_children_exited << std::endl;
-        
-            // std::cout << "Filter Topology Information: " << std::endl;
-            // std::cout << "Rank: " <<  topologyInfo->get_Rank() << std::endl;
-            // std::cout << "Dist to Root: " <<  topologyInfo->get_RootDistance() << std::endl;
-            // std::cout << "Dist to leaves: " << topologyInfo->get_MaxLeafDistance() << std::endl;
-
-            // std::cout << "Num Descendants: " << topologyInfo->get_NumDescendants() << std::endl;
-            // std::cout << "Num Leaf Descendants" << topologyInfo->get_NumLeafDescendants() << std::endl;
             std::cout << "Made a new filter state." << std::endl;
         }
 
@@ -214,7 +258,7 @@ extern "C"
                 // Case - a child has reported that it has exited.
                 case PROT_SUBTREE_EXIT:
                     state->num_children_exited++;
-                    std::cout << "Exit packet observed at filter." << std::endl;
+                    std::cout << "Exit packet observed at intermediate filter." << std::endl;
                     break;
                 default:
                     std::cerr << "Packet tag unrecognized at filter" << std::endl;
@@ -300,6 +344,7 @@ extern "C"
             {
                 state->num_children = 1;
             }
+            state->num_children_exited = 0;
 
             state->curr_buffer_size = 0;
 
@@ -330,7 +375,7 @@ extern "C"
                 // Case - a child has reported that it has exited.
                 case PROT_SUBTREE_EXIT:
                     state->num_children_exited++;
-                    std::cout << "Exit packet observed at filter." << std::endl;
+                    std::cout << "Exit packet observed at sort filter." << std::endl;
                     break;
                 default:
                     std::cerr << "Packet tag unrecognized at filter" << std::endl;
@@ -398,18 +443,9 @@ extern "C"
             state->num_children_exited = 0; 
             state->curr_buffer_size = 0;
 
+            state->full_aligned_file_name = NULL;
+
             *filter_state = (void *) state;
-
-            // std::cout << "Filter Num Children: " << state->num_children << std::endl;
-            // std::cout << "Filter Num Children Exited: " << state->num_children_exited << std::endl;
-        
-            // std::cout << "Filter Topology Information: " << std::endl;
-            // std::cout << "Rank: " <<  topologyInfo->get_Rank() << std::endl;
-            // std::cout << "Dist to Root: " <<  topologyInfo->get_RootDistance() << std::endl;
-            // std::cout << "Dist to leaves: " << topologyInfo->get_MaxLeafDistance() << std::endl;
-
-            // std::cout << "Num Descendants: " << topologyInfo->get_NumDescendants() << std::endl;
-            // std::cout << "Num Leaf Descendants" << topologyInfo->get_NumLeafDescendants() << std::endl;
             std::cout << "Made a new filter state." << std::endl;
         }
 
@@ -435,7 +471,7 @@ extern "C"
                 // Case - a child has reported that it has exited.
                 case PROT_SUBTREE_EXIT:
                     state->num_children_exited++;
-                    std::cout << "Exit packet observed at filter." << std::endl;
+                    std::cout << "Exit packet observed at top level filter filter." << std::endl;
                     break;
                 default:
                     std::cerr << "Packet tag unrecognized at filter" << std::endl;
@@ -443,6 +479,31 @@ extern "C"
             }
         }
         std::cout << "Finished unpacking packets" << std::endl;
+
+        // If we can merge - do so.
+        if(state->curr_buffer_size > 0)
+        {
+            std::vector<std::string> fname_vec = filenames_vector(state);
+            std::string tmp_fname;
+            s = get_final_filename(fname_vec);
+
+            // Get initial file used to contain the entire alignment array.
+            // Done by popping an element out of the fname vector and setting it to the output file.
+            if(state->full_aligned_file_name == NULL)
+            {
+                state->full_aligned_file_name = (char *) malloc(sizeof(char) * PATH_MAX);
+                bcopy(s.c_str(), state->full_aligned_file_name, PATH_MAX);
+                tmp_fname = fname_vec.back();
+                fname_vec.pop_back();
+                rename(tmp_fname.c_str(), state->full_aligned_file_name);
+            }
+
+            std::cout << "Merging bam files for: " << s << std::endl;
+            tmp_fname = filename_temp(s.c_str());
+
+            merge_bam_files_sequence(fname_vec, s, tmp_fname);
+            state->curr_buffer_size = 0;
+        }
 
         // Perform new operations based on filter state:
         // If # Children exited == # Children,
@@ -458,33 +519,12 @@ extern "C"
         {
             std::cout << "Filter Pushing back new packets." << std::endl;
             std::cout << "This is the TOP LEVEL Filter" << std::endl;
-            // a. Check if we need to flush buffer.
-            if(state->curr_buffer_size == 1)
+            // a. Send alignment packet.
+            if(state->full_aligned_file_name != NULL)
             {
-                PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", state->buffer[0]));
+                PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", state->full_aligned_file_name));
                 packets_out.push_back(p);
             }
-            else if(state->curr_buffer_size > 1)
-            {
-                std::vector<std::string> fname_vec = filenames_vector(state);
-
-                std::cerr << "getting chunk filesnames for vec of size: " << fname_vec.size() << std::endl;
-                s = get_final_filename(fname_vec);
-                std::cout << "Merging bam files for: " << s << std::endl;
-                merge_bam_files(fname_vec, s);
-
-                for(int i = 0; i < state->curr_buffer_size; i++)
-                {
-                    free(state->buffer[i]);
-                    state->buffer[i] = NULL;
-                }
-                state->curr_buffer_size = 0;
-
-                bcopy(s.c_str(), string_char_ptr, PATH_MAX + 1);
-                PacketPtr p(new Packet(packets_in[0]->get_StreamId(), PROT_MERGE, "%s", string_char_ptr));
-                packets_out.push_back(p);
-            }
-
             // b. Send an exit packet.
             PacketPtr exit_p (new Packet(packets_in[0]->get_StreamId(), PROT_SUBTREE_EXIT, ""));
             packets_out.push_back(exit_p);

@@ -3976,7 +3976,6 @@ static void driver(
  * Accepts arguments similar to hisat2 entry function:
  *  Hisat2 Executable <input> <flags>
  * Notably here, we set the index variables outside the scope of this function
- * Thus, 
  */
 int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 	try {
@@ -4042,7 +4041,7 @@ int hisat2(int argc, const char **argv, HGFM<index_t, local_index_t> *gfm) {
 					 << endl;
 			}
 
-			// Extra parametesr?
+			// Extra parameters?
 			if(optind < argc) {
 				cerr << "Extra parameter(s) specified: ";
 				for(int i = optind; i < argc; i++) {
@@ -4355,8 +4354,6 @@ int main(int argc, char **argv)
 
             bcopy(filename_out_bam.c_str(), filename_ptr_bam, PATH_MAX + 1);
             compress_file(filename_ptr_out, filename_ptr_bam);
-
-            // Possibly commands for SAMTOOLS INDEX, SAMTOOLS SORT?
 
             if(data_stream->send(PROT_MERGE, "%s",filename_out_bam.c_str()) == -1)
             {

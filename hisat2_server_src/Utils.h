@@ -16,6 +16,8 @@ std::string filename_bam_to_sam(const char *filename);
 // Get the 'stem' of a given filename before the extension.
 std::string filename_stem(const char *f_name);
 
+std::string filename_temp(const char *f_name);
+
 // Get the extension of a given filename.
 std::string filename_extension(const char *f_name);
 
